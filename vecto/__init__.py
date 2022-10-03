@@ -9,98 +9,27 @@ Utility functions are categorized into 3 classes (aka groups):
 3. DatabaseTwin class: A class for users to instantiate a DatabaseTwin object
 """
 
-from typing import List, Tuple
 import requests
 import pathlib
 import io
 import pandas as pd
-import configparser
 from requests_toolbelt import MultipartEncoder
-import pdb # to be used in pdb.set_trace()
 import random
 import json
 
-random.seed(1234)
-
-# # Parse Vecto config
-# vecto_config = configparser.ConfigParser()
-# vecto_config.read('vecto_config.env')
-# vecto_base_url = vecto_config['vecto']['vecto_base_url']
-# assert len(vecto_base_url) != 0
 
 # Set paths
 base_dir = pathlib.Path().absolute()
 path_to_dataset = 'demo_dataset'
 dataset_path = base_dir.joinpath(path_to_dataset)
 
-class TestDataset:
-    
-    
-    # Get dataset
-
-    @classmethod
-    def get_image_dataset(cls) -> list[str]:
-        """Gets and returns the list of image paths to be ingested into Vecto.
-
-        Args: None
-
-        Returns: 
-            list: a list of image paths
-        """
-        dataset_images = list(dataset_path.glob('**/*.png'))
-
-        return dataset_images
-
-    @classmethod
-    def get_random_image(cls) -> list[str]:
-        """Gets and returns randomly one image path to be ingested into Vecto.
-
-        Args: None
-
-        Returns: 
-            list: a random image path
-        """
-        dataset_images = cls.get_image_dataset()
-        random_image = dataset_images[random.randrange(len(dataset_images))]
-        return [random_image]
-    
-    @classmethod
-    def get_text_dataset(cls) -> list[str]:
-        """Gets and returns the list of input text to be ingested into Vecto.
-
-        Args: None
-
-        Returns: 
-            list: a list of input text
-        """
-        df = pd.read_csv(dataset_path.joinpath('colors.csv'), 
-                names=['color', 'name', 'hex', 'R', 'G', 'B'])
-        df = df[:100]
-
-        return df['name']
-    
-    @classmethod
-    def get_random_text(cls) -> list[str]:
-        """Gets and returns the list of image paths to be ingested into Vecto.
-
-        Args: None
-
-        Returns: 
-            list: a random text
-        """
-        dataset_text = cls.get_text_dataset()
-        random_text = dataset_text.iloc[random.randrange(len(dataset_text))]
-        return [random_text]
-
-
 class VectoAPI():
 
     def __init__(self, token, vector_space_id, vecto_base_url="https://api.vecto.ai", client=requests) -> None:
         self.token = token
         self.vector_space_id = vector_space_id
-        self.client = client
         self.vecto_base_url = vecto_base_url
-
+        self.client = client
 
     # Ingest
     def ingest(self, data, files, **kwargs):
@@ -349,7 +278,6 @@ class VectoAPI():
                     data=payload,
                     headers={"Authorization":"Bearer %s" % self.token, 'Content-Type': payload.content_type},
                     **kwargs)
-        print(results.status_code, results.content)
 
         return results
 
@@ -368,67 +296,5 @@ class VectoAPI():
                     data=payload,
                     headers={"Authorization":"Bearer %s" % self.token, 'Content-Type': payload.content_type},
                     **kwargs)
-        print(results.status_code, results.content)
 
         return results
-
-class DatabaseTwin:
-    """A class to represent a twin of the Vecto database, 
-    to be used to check against the entries in Vecto.
-
-    Args: None
-    """
-
-    def __init__(self) -> None:
-        self.ref_db = []
-        self.deleted_ids = []
-
-    def update_database(self, results, metadata) -> None:
-        """A function to update the database twin with new entries, 
-        which will be used to check if Vecto ingested the entries correctly.
-
-        Args:
-            results (list): A list of vector ids ingested into Vecto
-            metadata (list): A list of vector metadata
-
-        Returns: None
-        """
-        for id, path in zip(results, metadata['data']):
-            self.ref_db.append([id, json.loads(path)])
-
-    def get_database(self) -> pd.DataFrame:
-        """A function to get the latest database twin, 
-        which will be used to check if Vecto ingested the entries correctly.
-
-        Args: None
-
-        Returns:
-            DataFrame: A Pandas dataframe
-        """
-        ref_df = pd.DataFrame(self.ref_db, columns=['id', 'metadata'])
-        
-        return ref_df
-
-    def update_deleted_ids(self, vector_ids) -> None:
-        """A function to update the database twin with deleted vector ids, 
-        which will be used to check if Vecto deleted the entries correctly.
-
-        Args:
-            results (list): A list of vector ids deleted from Vecto
-
-        Returns: None
-        """
-        for vector_id in vector_ids:
-            self.deleted_ids.append(vector_id)
-
-    def get_deleted_ids(self) -> list[int]:
-        """A function to get the latest deleted vector ids, 
-        which will be used to check if Vecto deleted the entries correctly.
-
-        Args: None
-
-        Returns:
-            list: A list of deleted vector ids
-        """
-        return self.deleted_ids
-        
