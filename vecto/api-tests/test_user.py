@@ -1,10 +1,9 @@
 import io
-from test_util import DatabaseTwin, TestDataset, VectoAPI
+from vecto import VectoAPI
+from test_util import DatabaseTwin, TestDataset
 import random
 import logging
 import pytest
-import pdb # to be used in pdb.set_trace()
-import configparser
 import json
 
 '''
@@ -20,11 +19,9 @@ See https://docs.pytest.org/en/6.2.x/usage.html#setting-breakpoints for more inf
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Parse Vecto config
-vecto_config = configparser.ConfigParser()
-vecto_config.read('vecto_config.env')
-token = vecto_config['vecto']['user_token']
-vector_space_id = vecto_config['vecto']['vector_space_id']
+import os
+token = os.environ['user_token']
+vector_space_id = os.environ['vector_space_id']
 
 user_vecto = VectoAPI(token, vector_space_id)
 user_db_twin = DatabaseTwin()
@@ -362,9 +359,9 @@ class TestAnalogy:
     
     # Test getting an analogy from Vecto
     def test_get_analogy(self): # can be text or images
-        query = 'navy.txt'
-        analogy_from = 'blue.txt'
-        analogy_to = 'orange.txt'
+        query = 'vecto/api-tests/demo_dataset/navy.txt'
+        analogy_from = 'vecto/api-tests/demo_dataset/blue.txt'
+        analogy_to = 'vecto/api-tests/demo_dataset/orange.txt'
         top_k = 10
         response = user_vecto.get_analogy(query, analogy_from, analogy_to, top_k)
         results = response.json()['results']
@@ -384,8 +381,8 @@ class TestAnalogy:
     # Test creating an analogy on Vecto
     # Create and delete analogy checks against each other - you need to create one first before you can delete
     def test_create_analogy(self):
-        analogy_from = 'blue.txt'
-        analogy_to = 'orange.txt'
+        analogy_from = 'vecto/api-tests/demo_dataset/blue.txt'
+        analogy_to = 'vecto/api-tests/demo_dataset/orange.txt'
         analogy_id = 1
         response = user_vecto.create_analogy(analogy_id, analogy_from, analogy_to)
 

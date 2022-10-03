@@ -10,18 +10,10 @@ Utility functions are categorized into 3 classes (aka groups):
 """
 
 import requests
-import pathlib
 import io
-import pandas as pd
 from requests_toolbelt import MultipartEncoder
 import random
 import json
-
-
-# Set paths
-base_dir = pathlib.Path().absolute()
-path_to_dataset = 'demo_dataset'
-dataset_path = base_dir.joinpath(path_to_dataset)
 
 class VectoAPI():
 
@@ -195,9 +187,9 @@ class VectoAPI():
         Returns:
             dict: Client response body
         """
-        query_f = dataset_path.joinpath(query)
-        afrom_f = dataset_path.joinpath(analogy_from)
-        ato_f = dataset_path.joinpath(analogy_to)
+        query_f = query
+        afrom_f = analogy_from
+        ato_f = analogy_to
         data = MultipartEncoder(fields=[
             ('vector_space_id', str(self.vector_space_id)), ('top_k', str(top_k)), ('modality', 'TEXT'),
             ('query', ('_', open(query_f, 'rb'), 'text/plain')), 
@@ -226,8 +218,8 @@ class VectoAPI():
         Returns:
             dict: Client response body
         """
-        afrom_f = dataset_path.joinpath(analogy_from)
-        ato_f = dataset_path.joinpath(analogy_to)
+        afrom_f = analogy_from
+        ato_f = analogy_to
         data = MultipartEncoder(fields=[
             ('vector_space_id', str(self.vector_space_id)), ('analogy_id', str(analogy_id)), ('modality', 'TEXT'),
             ('from', ('_', open(afrom_f, 'rb'), 'text/plain')), # Analogy 1
