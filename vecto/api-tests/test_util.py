@@ -18,7 +18,7 @@ random.seed(1234)
 # Fetch Vecto config from environment
 import os
 token = os.environ['user_token']
-vector_space_id = os.environ['vector_space_id']
+vector_space_id = int(os.environ['vector_space_id'])
 
 # Set paths
 base_dir = pathlib.Path().absolute()

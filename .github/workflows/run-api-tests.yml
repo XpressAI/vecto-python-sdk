@@ -31,7 +31,7 @@ jobs:
 
     - name: Run API Tests
       env:
-        vector_space_id : ${{ secrets.USER_TOKEN }}
+        vector_space_id : ${{ secrets.VECTOR_SPACE_ID }}
         user_token: ${{ secrets.USER_TOKEN }}
         public_token: ${{ secrets.PUBLIC_TOKEN }}
       run: |

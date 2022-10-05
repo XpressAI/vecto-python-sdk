@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 import os
 token = os.environ['user_token']
-vector_space_id = os.environ['vector_space_id']
+vector_space_id = int(os.environ['vector_space_id'])
 
 user_vecto = VectoAPI(token, vector_space_id)
 user_db_twin = DatabaseTwin()
