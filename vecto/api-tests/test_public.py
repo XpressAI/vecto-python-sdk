@@ -93,9 +93,8 @@ class TestLookup:
         assert response_k100.status_code == 200
         assert response_k100.content is not None
 
-        # TODO - handle this better if VS not created from scratch
-        # logger.info("Checking if there's 6 lookup results: " + str(len(results_k100) == 6))
-        # assert len(results_k100) is 6
+        logger.info("Checking if there's 11 lookup results: " + str(len(results_k100) == 11))
+        assert len(results_k100) is 11
 
         logger.info("Checking if values in 'data' is string: " + str(isinstance(results_k100[0]['data'], str)))
         assert isinstance(results_k100[0]['data'], str)
@@ -131,9 +130,8 @@ class TestLookup:
         assert response_k100.status_code is 200
         assert response_k100.content is not None
 
-        # TODO - handle this better if VS not created from scratch
-        # logger.info("Checking if there's 6 lookup results: " + str(len(results_k100) == 6))
-        # assert len(results_k100) is 6
+        logger.info("Checking if there's 11 lookup results: " + str(len(results_k100) == 11))
+        assert len(results_k100) is 11
         
         logger.info("Checking if values in 'data' is string: " + str(isinstance(results_k100[0]['data'], str)))
         assert isinstance(results_k100[0]['data'], str)
