@@ -34,15 +34,15 @@ class TestIngesting:
     # Test ingesting one image into Vecto
     def test_ingest_single_image(self):
         image = TestDataset.get_random_image()
-        response, _ = public_vecto.ingest_image_batch(image)
+        response, _ = public_vecto.ingest_image(image)
 
         logger.info(response.status_code)
         assert response.status_code == 403
 
     # Test ingesting multiple images into Vecto
-    def test_ingest_image_batch(self):
+    def test_ingest_image(self):
         batch = TestDataset.get_image_dataset()[:5]
-        response, _ = public_vecto.ingest_image_batch(batch)
+        response, _ = public_vecto.ingest_image(batch)
         
         logger.info(response.status_code)      
         assert response.status_code == 403
@@ -50,15 +50,15 @@ class TestIngesting:
     # Test ingesting one text into Vecto
     def test_ingest_single_text(self):
         text = TestDataset.get_random_text()
-        response, _ = public_vecto.ingest_text_batch([0], text)
+        response, _ = public_vecto.ingest_text([0], text)
         
         logger.info(response.status_code)
         assert response.status_code == 403
 
     # Test ingesting multiple texts into Vecto
-    def test_ingest_text_batch(self):
+    def test_ingest_text(self):
         batch = TestDataset.get_text_dataset()
-        response, _ = public_vecto.ingest_text_batch(batch.index.tolist()[:5], batch.tolist()[:5])
+        response, _ = public_vecto.ingest_text(batch.index.tolist()[:5], batch.tolist()[:5])
         
         logger.info(response.status_code)
         assert response.status_code == 403
@@ -68,9 +68,9 @@ class TestIngesting:
 class TestLookup:
     
     # Test doing lookup / search using text on Vecto
-    def test_lookup_single_text(self):
+    def test_lookup_text(self):
         f = io.StringIO('blue')
-        response_k5 = public_vecto.lookup_single(f, modality='TEXT', top_k=5)
+        response_k5 = public_vecto.lookup(f, modality='TEXT', top_k=5)
         results_k5 = response_k5.json()['results']
         
         logger.info(response_k5.status_code)
@@ -86,7 +86,7 @@ class TestLookup:
         assert isinstance(results_k5[-1]['similarity'], float)
 
         # top_k=100 is to return everything in the vector space
-        response_k100 = public_vecto.lookup_single(f, modality='TEXT', top_k=100)
+        response_k100 = public_vecto.lookup(f, modality='TEXT', top_k=100)
         results_k100 = response_k100.json()['results']
 
         logger.info(response_k100.status_code)
@@ -104,10 +104,10 @@ class TestLookup:
         assert isinstance(results_k100[-1]['similarity'], float)
     
     # Test doing lookup / search using image on Vecto
-    def test_lookup_single_image(self):
+    def test_lookup_image(self):
         query = TestDataset.get_random_image()[0]
         with open(query, 'rb') as f:
-            response_k5 = public_vecto.lookup_single(f, modality='IMAGE', top_k=5)
+            response_k5 = public_vecto.lookup(f, modality='IMAGE', top_k=5)
         results_k5 = response_k5.json()['results']
 
         logger.info(response_k5.status_code)
@@ -123,7 +123,7 @@ class TestLookup:
         assert isinstance(results_k5[-1]['similarity'], float)
 
         with open(query, 'rb') as f:
-            response_k100 = public_vecto.lookup_single(f, modality='IMAGE', top_k=100)
+            response_k100 = public_vecto.lookup(f, modality='IMAGE', top_k=100)
         results_k100 = response_k100.json()['results']
 
         logger.info(response_k100.status_code)
@@ -146,7 +146,7 @@ class TestUpdating:
     # Test updating a vector embedding using text on Vecto
     def test_update_single_text_vector_embedding(self):
         text = TestDataset.get_random_text()
-        response = public_vecto.update_batch_vector_embeddings(text, modality='TEXT')
+        response = public_vecto.update_vector_embeddings(text, modality='TEXT')
 
         logger.info(response.status_code)
         assert response.status_code == 403
@@ -154,7 +154,7 @@ class TestUpdating:
     # Test updating a vector embedding using image on Vecto
     def test_update_single_image_vector_embedding(self):
         image = TestDataset.get_random_image()
-        response = public_vecto.update_batch_vector_embeddings(image, modality='IMAGE')
+        response = public_vecto.update_vector_embeddings(image, modality='IMAGE')
 
         logger.info(response.status_code)
         assert response.status_code == 403
@@ -162,7 +162,7 @@ class TestUpdating:
     # Test updating multiple vector embeddings using text on Vecto
     def test_update_batch_text_vector_embedding(self):
         text = TestDataset.get_text_dataset()[:5]
-        response = public_vecto.update_batch_vector_embeddings(text, modality='TEXT')
+        response = public_vecto.update_vector_embeddings(text, modality='TEXT')
 
         logger.info(response.status_code)
         assert response.status_code == 403
@@ -170,7 +170,7 @@ class TestUpdating:
     # Test updating multiple vector embeddings using image on Vecto
     def test_update_batch_image_vector_embedding(self):
         image = TestDataset.get_image_dataset()[:5]
-        response = public_vecto.update_batch_vector_embeddings(image, modality='IMAGE')
+        response = public_vecto.update_vector_embeddings(image, modality='IMAGE')
 
         logger.info(response.status_code)
         assert response.status_code == 403
@@ -179,17 +179,17 @@ class TestUpdating:
     def test_update_single_vector_metadata(self):
         vector_id = random.randrange(0, 10)
         new_metadata = 'new_metadata'
-        response = public_vecto.update_batch_vector_metadata([vector_id], [new_metadata])
+        response = public_vecto.update_vector_metadata([vector_id], [new_metadata])
 
         logger.info(response.status_code)
         assert response.status_code == 403
 
     # Test updating metadata of multiple vector embeddings on Vecto
-    def test_update_batch_vector_metadata(self):
+    def test_update_vector_metadata(self):
         batch_len = 3
         vector_ids = random.sample(range(10), batch_len)
         new_metadata = ['new_metadata_{}'.format(i) for i in range(batch_len)]
-        response = public_vecto.update_batch_vector_metadata(vector_ids, new_metadata)
+        response = public_vecto.update_vector_metadata(vector_ids, new_metadata)
 
         logger.info(response.status_code)
         assert response.status_code == 403
@@ -241,7 +241,7 @@ class TestDelete:
     # Test deleting a single vector embedding from Vecto
     def test_delete_single_vector_embedding(self):
         vector_id = random.randrange(0, 10)
-        response = public_vecto.delete_batch_vector_embeddings([vector_id])
+        response = public_vecto.delete_vector_embeddings([vector_id])
        
         logger.info(response.status_code)
         assert response.status_code == 403
@@ -255,7 +255,7 @@ class TestDelete:
             rand_id = random.randrange(0, 10)
             if rand_id not in deleted_ids and rand_id not in vector_ids:
                 vector_ids.append(rand_id)
-        response = public_vecto.delete_batch_vector_embeddings(vector_ids)
+        response = public_vecto.delete_vector_embeddings(vector_ids)
        
         logger.info(response.status_code)
         assert response.status_code == 403

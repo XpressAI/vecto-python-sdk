@@ -32,7 +32,7 @@ def test_clear_vector_space_entries():
     response = user_vecto.delete_vector_space_entries()
     
     f = io.StringIO('blue')
-    lookup_response = user_vecto.lookup_single(f, modality='TEXT', top_k=100)
+    lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
     results = lookup_response.json()['results']
     
     logger.info(response.status_code)
@@ -47,7 +47,7 @@ class TestIngesting:
     # Test ingesting one image into Vecto
     def test_ingest_single_image(self):
         image = TestDataset.get_random_image()
-        response, metadata = user_vecto.ingest_image_batch(image)
+        response, metadata = user_vecto.ingest_image(image)
         logger.info(response.status_code)
         assert response.status_code is 200
         assert response.content is not None
@@ -65,9 +65,9 @@ class TestIngesting:
         assert results[-1] == ref_db["id"].iloc[-1] # last ingested input of vector space so it should be the last entry in ref_db
 
     # Test ingesting multiple images into Vecto
-    def test_ingest_image_batch(self):
+    def test_ingest_image(self):
         batch = TestDataset.get_image_dataset()[:5]
-        response, metadata = user_vecto.ingest_image_batch(batch)
+        response, metadata = user_vecto.ingest_image(batch)
         results = response.json()['ids']
         user_db_twin.update_database(results, metadata)
         ref_db = user_db_twin.get_database()
@@ -132,7 +132,7 @@ class TestIngesting:
     def test_ingest_single_text(self):
         text = TestDataset.get_random_text()
         index = [0]
-        response, metadata = user_vecto.ingest_text_batch(index, text)
+        response, metadata = user_vecto.ingest_text(index, text)
         results = response.json()['ids']
         user_db_twin.update_database(results, metadata)
         ref_db = user_db_twin.get_database()
@@ -147,9 +147,9 @@ class TestIngesting:
         assert results[-1] == ref_db["id"].iloc[-1] # last ingested input of vector space so it should be the last entry in ref_db
 
     # Test ingesting multiple texts into Vecto
-    def test_ingest_text_batch(self):
+    def test_ingest_text(self):
         batch = TestDataset.get_text_dataset()
-        response, metadata = user_vecto.ingest_text_batch(batch.index.tolist()[:5], batch.tolist()[:5])
+        response, metadata = user_vecto.ingest_text(batch.index.tolist()[:5], batch.tolist()[:5])
         results = response.json()['ids']
         user_db_twin.update_database(results, metadata)
         ref_db = user_db_twin.get_database()
@@ -174,9 +174,9 @@ class TestIngesting:
 class TestLookup:
     
     # Test doing lookup / search using text on Vecto
-    def test_lookup_single_text(self):
+    def test_lookup_text(self):
         f = io.StringIO('blue')
-        response_k5 = user_vecto.lookup_single(f, modality='TEXT', top_k=5)
+        response_k5 = user_vecto.lookup(f, modality='TEXT', top_k=5)
         results_k5 = response_k5.json()['results']
 
         logger.info(response_k5.status_code)
@@ -192,7 +192,7 @@ class TestLookup:
         assert isinstance(results_k5[-1]['similarity'], float)
 
         # top_k=100 is to return everything in the vector space
-        response_k100 = user_vecto.lookup_single(f, modality='TEXT', top_k=100)
+        response_k100 = user_vecto.lookup(f, modality='TEXT', top_k=100)
         results_k100 = response_k100.json()['results']
 
         logger.info(response_k100.status_code)
@@ -208,10 +208,10 @@ class TestLookup:
         assert isinstance(results_k100[-1]['similarity'], float)
     
     # Test doing lookup / search using image on Vecto
-    def test_lookup_single_image(self):
+    def test_lookup_image(self):
         query = TestDataset.get_random_image()[0]
         with open(query, 'rb') as f:
-            response_k5 = user_vecto.lookup_single(f, modality='IMAGE', top_k=5)
+            response_k5 = user_vecto.lookup(f, modality='IMAGE', top_k=5)
         results_k5 = response_k5.json()['results']
 
         logger.info(response_k5.status_code)
@@ -227,7 +227,7 @@ class TestLookup:
         assert isinstance(results_k5[-1]['similarity'], float)
 
         with open(query, 'rb') as f:
-            response_k100 = user_vecto.lookup_single(f, modality='IMAGE', top_k=100)
+            response_k100 = user_vecto.lookup(f, modality='IMAGE', top_k=100)
         results_k100 = response_k100.json()['results']
 
         logger.info(response_k100.status_code)
@@ -248,7 +248,7 @@ class TestUpdating:
     # Test updating a vector embedding using text on Vecto
     def test_update_single_text_vector_embedding(self):
         text = TestDataset.get_random_text()
-        response = user_vecto.update_batch_vector_embeddings(text, modality='TEXT')
+        response = user_vecto.update_vector_embeddings(text, modality='TEXT')
 
         logger.info(response.status_code)
         assert response.status_code is 200
@@ -257,7 +257,7 @@ class TestUpdating:
     # Test updating a vector embedding using image on Vecto
     def test_update_single_image_vector_embedding(self):
         image = TestDataset.get_random_image()
-        response = user_vecto.update_batch_vector_embeddings(image, modality='IMAGE')
+        response = user_vecto.update_vector_embeddings(image, modality='IMAGE')
 
         logger.info(response.status_code)
         assert response.status_code is 200
@@ -266,7 +266,7 @@ class TestUpdating:
     # Test updating multiple vector embeddings using text on Vecto
     def test_update_batch_text_vector_embedding(self):
         text = TestDataset.get_text_dataset()[:5]
-        response = user_vecto.update_batch_vector_embeddings(text, modality='TEXT')
+        response = user_vecto.update_vector_embeddings(text, modality='TEXT')
 
         logger.info(response.status_code)
         assert response.status_code is 200
@@ -275,7 +275,7 @@ class TestUpdating:
     # Test updating multiple vector embeddings using image on Vecto
     def test_update_batch_image_vector_embedding(self):
         image = TestDataset.get_image_dataset()[:5]
-        response = user_vecto.update_batch_vector_embeddings(image, modality='IMAGE')
+        response = user_vecto.update_vector_embeddings(image, modality='IMAGE')
 
         logger.info(response.status_code)
         assert response.status_code is 200
@@ -285,12 +285,12 @@ class TestUpdating:
     def test_update_single_vector_metadata(self):
         vector_id = random.randrange(0, 10)
         new_metadata = 'new_metadata'
-        response = user_vecto.update_batch_vector_metadata([vector_id], [new_metadata])
+        response = user_vecto.update_vector_metadata([vector_id], [new_metadata])
         ref_db = user_db_twin.get_database()
 
         # Just a dummy lookup to return the specified ID - check specific entry
         f = io.StringIO('blue')
-        lookup_response = user_vecto.lookup_single(f, modality='TEXT', top_k=1, ids=vector_id)
+        lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=1, ids=vector_id)
         results = lookup_response.json()['results'][0]
 
         logger.info(response.status_code)
@@ -302,7 +302,7 @@ class TestUpdating:
 
         # Just a dummy lookup to return all the data in the vector space - check other entries
         f = io.StringIO('blue')
-        lookup_response = user_vecto.lookup_single(f, modality='TEXT', top_k=100)
+        lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
         lookup_metadata = []
         for result in lookup_response.json()['results']:
             if result['id'] != vector_id:
@@ -315,16 +315,16 @@ class TestUpdating:
         logger.info("All other metadata unchanged.")
 
     # Test updating metadata of multiple vector embeddings on Vecto
-    def test_update_batch_vector_metadata(self):
+    def test_update_vector_metadata(self):
         batch_len = 3
         vector_ids = random.sample(range(10), batch_len)
         new_metadata = ['new_metadata_{}'.format(i) for i in range(batch_len)]
-        response = user_vecto.update_batch_vector_metadata(vector_ids, new_metadata)
+        response = user_vecto.update_vector_metadata(vector_ids, new_metadata)
         ref_db = user_db_twin.get_database()
         
         # Just a dummy lookup to return all the data in the vector space - check other entries
         f = io.StringIO('blue')
-        lookup_response = user_vecto.lookup_single(f, modality='TEXT', top_k=batch_len, ids=vector_ids)
+        lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=batch_len, ids=vector_ids)
         lookup_metadata = []
         for result in lookup_response.json()['results']:
             if result['id'] in vector_ids:
@@ -340,7 +340,7 @@ class TestUpdating:
 
         # Just a dummy lookup to return all the data in the vector space - check other entries
         f = io.StringIO('blue')
-        lookup_response = user_vecto.lookup_single(f, modality='TEXT', top_k=100)
+        lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
         lookup_metadata = []
         for result in lookup_response.json()['results']:
             if result['id'] != vector_ids:
@@ -405,12 +405,12 @@ class TestDelete:
     # Test deleting a single vector embedding from Vecto
     def test_delete_single_vector_embedding(self):
         vector_id = random.randrange(0, 10)
-        response = user_vecto.delete_batch_vector_embeddings([vector_id])
+        response = user_vecto.delete_vector_embeddings([vector_id])
         ref_db = user_db_twin.get_database()
         user_db_twin.update_deleted_ids([vector_id])
 
         f = io.StringIO('blue')
-        lookup_response = user_vecto.lookup_single(f, modality='TEXT', top_k=100)
+        lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
         results = lookup_response.json()['results']
         deleted_ids = user_db_twin.get_deleted_ids()
        
@@ -429,12 +429,12 @@ class TestDelete:
             rand_id = random.randrange(0, 10)
             if rand_id not in deleted_ids and rand_id not in vector_ids:
                 vector_ids.append(rand_id)
-        response = user_vecto.delete_batch_vector_embeddings(vector_ids)
+        response = user_vecto.delete_vector_embeddings(vector_ids)
         ref_db = user_db_twin.get_database()
         user_db_twin.update_deleted_ids(vector_ids)
 
         f = io.StringIO('blue')
-        lookup_response = user_vecto.lookup_single(f, modality='TEXT', top_k=100)
+        lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
         results = lookup_response.json()['results']
        
         logger.info(response.status_code)

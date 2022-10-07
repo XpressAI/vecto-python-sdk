@@ -44,7 +44,7 @@ class VectoAPI():
 
         return results
 
-    def ingest_image_batch(self, batch_path_list, **kwargs) -> tuple[dict, dict]:
+    def ingest_image(self, batch_path_list, **kwargs) -> tuple[dict, dict]:
         """A function to ingest a batch of images into Vecto.
         Also works with single image aka batch of 1.
 
@@ -68,7 +68,7 @@ class VectoAPI():
         
         return results, data
 
-    def ingest_text_batch(self, batch_index_list, batch_text_list, **kwargs) -> tuple[dict, dict]:
+    def ingest_text(self, batch_index_list, batch_text_list, **kwargs) -> tuple[dict, dict]:
         """A function to ingest a batch of text into Vecto. 
         Also works with single text aka batch of 1.
 
@@ -93,7 +93,7 @@ class VectoAPI():
 
     # Lookup
 
-    def lookup_single(self, f, modality, top_k, ids=None, **kwargs) -> dict:
+    def lookup(self, f, modality, top_k, ids=None, **kwargs) -> dict:
         """A function to search on Vecto, based on the lookup item.
 
         Args:
@@ -117,7 +117,7 @@ class VectoAPI():
 
     # Update
 
-    def update_batch_vector_embeddings(self, batch, modality, **kwargs) -> dict:
+    def update_vector_embeddings(self, batch, modality, **kwargs) -> dict:
         """A function to update current vector embeddings with new one.
 
         Args:
@@ -149,7 +149,7 @@ class VectoAPI():
 
         return results
 
-    def update_batch_vector_metadata(self, vector_ids, new_metadata, **kwargs) -> dict:
+    def update_vector_metadata(self, vector_ids, new_metadata, **kwargs) -> dict:
         """A function to update current vector metadata with new one.
 
         Args:
@@ -255,7 +255,7 @@ class VectoAPI():
 
     # Delete
 
-    def delete_batch_vector_embeddings(self, vector_ids, **kwargs) -> dict:
+    def delete_vector_embeddings(self, vector_ids, **kwargs) -> dict:
         """A function to delete vector embeddings that is stored in Vecto.
 
         Args:
