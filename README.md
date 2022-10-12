@@ -1,3 +1,9 @@
+<p align="center">
+<a href="https://www.vecto.ai/">
+<img src="https://user-images.githubusercontent.com/68586800/192857099-499146bb-5570-4702-a88f-bb4582e940c0.png" width="300"/>
+</a>
+</p>
+
 # Vecto Python SDK
 
 ## Building the Wheel and Installation
@@ -57,7 +63,7 @@ vs.lookup("Blue", "TEXT", top_k=5)
 ```
 
 ## Running the Tests
-Currently the tests are ported from the [vecto api tests repository](https://github.com/XpressAI/vecto-api-test). To run them, export `user_token`, `public_token`, and `vector_space_id` as variables from the [.env](https://github.com/XpressAI/vecto-api-test/blob/main/vecto_config.env), then run:
+We've setup an [action](https://github.com/XpressAI/vecto-python-sdk/actions/workflows/run-api-tests.yml) to automate the API tests. If you'd like to run the tests locally, export a valid `user_token`, `public_token`, and `vector_space_id`, then run:
 ```
 pytest vecto/api-tests/test_user.py
 pytest vecto/api-tests/test_public.py
