@@ -1,10 +1,26 @@
+# Copyright 2022 Xpress AI
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import io
-from vecto import Vecto
+# from vecto import Vecto
 from test_util import DatabaseTwin, TestDataset
 import random
 import logging
 import pytest
 import json
+
+from vecto.vecto_requests import Vecto
 
 '''
 Please update token, vecto_base_url and vector_space_id in *vecto_config.env*
@@ -359,9 +375,9 @@ class TestAnalogy:
     
     # Test getting an analogy from Vecto
     def test_get_analogy(self): # can be text or images
-        query = 'vecto/tests/demo_dataset/navy.txt'
-        analogy_from = 'vecto/tests/demo_dataset/blue.txt'
-        analogy_to = 'vecto/tests/demo_dataset/orange.txt'
+        query = 'tests/demo_dataset/navy.txt'
+        analogy_from = 'tests/demo_dataset/blue.txt'
+        analogy_to = 'tests/demo_dataset/orange.txt'
         top_k = 10
         response = user_vecto.get_analogy(query, analogy_from, analogy_to, top_k)
         results = response.json()['results']
@@ -381,8 +397,8 @@ class TestAnalogy:
     # Test creating an analogy on Vecto
     # Create and delete analogy checks against each other - you need to create one first before you can delete
     def test_create_analogy(self):
-        analogy_from = 'vecto/tests/demo_dataset/blue.txt'
-        analogy_to = 'vecto/tests/demo_dataset/orange.txt'
+        analogy_from = 'tests/demo_dataset/blue.txt'
+        analogy_to = 'tests/demo_dataset/orange.txt'
         analogy_id = 1
         response = user_vecto.create_analogy(analogy_id, analogy_from, analogy_to)
 
