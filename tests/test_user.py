@@ -13,14 +13,12 @@
 # limitations under the License.
 
 import io
-# from vecto import Vecto
+from vecto import Vecto
 from test_util import DatabaseTwin, TestDataset
 import random
 import logging
 import pytest
 import json
-
-from vecto.vecto_requests import Vecto
 
 '''
 Please update token, vecto_base_url and vector_space_id in *vecto_config.env*
