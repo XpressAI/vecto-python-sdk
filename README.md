@@ -17,8 +17,8 @@ You can install that wheel file with `pip install vecto-*.whl` into your current
 ## Sample Usage
 
 ```
-import VectoAPI from vecto
-vs = VectoAPI(token="YOUR_TOKEN", vector_space_id=YOUR_ID)
+import Vecto from vecto
+vs = Vecto(token="YOUR_TOKEN", vector_space_id=YOUR_ID)
 
 vs.lookup("Blue", "TEXT", top_k=5)
 ```
@@ -63,8 +63,8 @@ vs.lookup("Blue", "TEXT", top_k=5)
 ```
 
 ## Running the Tests
-We've setup an [action](https://github.com/XpressAI/vecto-python-sdk/actions/workflows/run-api-tests.yml) to automate the API tests. If you'd like to run the tests locally, export a valid `user_token`, `public_token`, and `vector_space_id`, then run:
+We've setup an [action](https://github.com/XpressAI/vecto-python-sdk/actions/workflows/run-tests.yml) to automate the API tests. If you'd like to run the tests locally, export a valid `user_token`, `public_token`, and `vector_space_id`, then run:
 ```
-pytest vecto/api-tests/test_user.py
-pytest vecto/api-tests/test_public.py
+pytest vecto/tests/test_user.py
+pytest vecto/tests/test_public.py
 ```

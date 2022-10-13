@@ -1,5 +1,5 @@
 import io
-from vecto import VectoAPI
+from vecto import Vecto
 from test_util import DatabaseTwin, TestDataset
 import random
 import logging
@@ -23,7 +23,7 @@ import os
 token = os.environ['public_token']
 vector_space_id = int(os.environ['vector_space_id'])
 
-public_vecto = VectoAPI(token, vector_space_id)
+public_vecto = Vecto(token, vector_space_id)
 public_db_twin = DatabaseTwin()
 
 # Continued from test_user.py
@@ -199,9 +199,9 @@ class TestAnalogy:
     
     # Test getting an analogy from Vecto
     def test_get_analogy(self): # can be text or images
-        query = 'vecto/api-tests/demo_dataset/navy.txt'
-        analogy_from = 'vecto/api-tests/demo_dataset/blue.txt'
-        analogy_to = 'vecto/api-tests/demo_dataset/orange.txt'
+        query = 'vecto/tests/demo_dataset/navy.txt'
+        analogy_from = 'vecto/tests/demo_dataset/blue.txt'
+        analogy_to = 'vecto/tests/demo_dataset/orange.txt'
         top_k = 5
         response = public_vecto.get_analogy(query, analogy_from, analogy_to, top_k)
         results = response.json()['results']
@@ -219,8 +219,8 @@ class TestAnalogy:
 
     # Test creating an analogy on Vecto
     def test_create_analogy(self):
-        analogy_from = 'vecto/api-tests/demo_dataset/blue.txt'
-        analogy_to = 'vecto/api-tests/demo_dataset/orange.txt'
+        analogy_from = 'vecto/tests/demo_dataset/blue.txt'
+        analogy_to = 'vecto/tests/demo_dataset/orange.txt'
         analogy_id = 1
         response = public_vecto.create_analogy(analogy_id, analogy_from, analogy_to)
 

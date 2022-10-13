@@ -27,7 +27,7 @@ jobs:
 
     - name: Install API test dependencies
       run: |
-        python -m pip install -r vecto/api-tests/requirements.txt
+        python -m pip install -r vecto/tests/requirements.txt
 
     - name: Run API Tests
       env:
@@ -35,8 +35,8 @@ jobs:
         user_token: ${{ secrets.USER_TOKEN }}
         public_token: ${{ secrets.PUBLIC_TOKEN }}
       run: |
-        pytest vecto/api-tests/test_user.py
-        pytest vecto/api-tests/test_public.py
+        pytest vecto/tests/test_user.py
+        pytest vecto/tests/test_public.py
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v2

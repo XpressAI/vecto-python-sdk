@@ -3,7 +3,7 @@
 This script contains the utility functions needed to run Vecto API testing.
 Utility functions are categorized into 3 classes (aka groups):
 1. TestDataset class: A class with static methods for getting data to be ingested into Vecto
-2. VectoAPI class: A class for users to instantiate a VectoAPI object, e.g. public_vecto and private_vecto object
+2. Vecto class: A class for users to instantiate a Vecto object, e.g. public_vecto and private_vecto object
 3. DatabaseTwin class: A class for users to instantiate a DatabaseTwin object
 """
 
@@ -22,7 +22,7 @@ vector_space_id = int(os.environ['vector_space_id'])
 
 # Set paths
 base_dir = pathlib.Path().absolute()
-path_to_dataset = 'vecto/api-tests/demo_dataset'
+path_to_dataset = 'vecto/tests/demo_dataset'
 dataset_path = base_dir.joinpath(path_to_dataset)
 
 class TestDataset:

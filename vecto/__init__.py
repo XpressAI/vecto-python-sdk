@@ -5,7 +5,7 @@
 This script contains the utility functions needed to run Vecto API testing.
 Utility functions are categorized into 3 classes (aka groups):
 1. TestDataset class: A class with static methods for getting data to be ingested into Vecto
-2. VectoAPI class: A class for users to instantiate a VectoAPI object, e.g. public_vecto and private_vecto object
+2. Vecto class: A class for users to instantiate a Vecto object, e.g. public_vecto and private_vecto object
 3. DatabaseTwin class: A class for users to instantiate a DatabaseTwin object
 """
 
@@ -15,7 +15,7 @@ from requests_toolbelt import MultipartEncoder
 import random
 import json
 
-class VectoAPI():
+class Vecto():
 
     def __init__(self, token, vector_space_id, vecto_base_url="https://api.vecto.ai", client=requests) -> None:
         self.token = token
