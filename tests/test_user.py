@@ -63,7 +63,8 @@ class TestIngesting:
     # Test ingesting one image into Vecto
     def test_ingest_single_image(self):
         image = TestDataset.get_random_image()
-        response, metadata = user_vecto.ingest_image(image)
+        metadata = TestDataset.get_image_metadata(image)
+        response = user_vecto.ingest_image(image)
         logger.info(response.status_code)
         assert response.status_code is 200
         assert response.content is not None
@@ -83,7 +84,8 @@ class TestIngesting:
     # Test ingesting multiple images into Vecto
     def test_ingest_image(self):
         batch = TestDataset.get_image_dataset()[:5]
-        response, metadata = user_vecto.ingest_image(batch)
+        metadata = TestDataset.get_image_metadata(batch)
+        response = user_vecto.ingest_image(batch)
         results = response.json()['ids']
         user_db_twin.update_database(results, metadata)
         ref_db = user_db_twin.get_database()
@@ -148,7 +150,8 @@ class TestIngesting:
     def test_ingest_single_text(self):
         text = TestDataset.get_random_text()
         index = [0]
-        response, metadata = user_vecto.ingest_text(index, text)
+        metadata = TestDataset.get_text_metadata(index, text)
+        response = user_vecto.ingest_text(index, text)
         results = response.json()['ids']
         user_db_twin.update_database(results, metadata)
         ref_db = user_db_twin.get_database()
@@ -165,7 +168,8 @@ class TestIngesting:
     # Test ingesting multiple texts into Vecto
     def test_ingest_text(self):
         batch = TestDataset.get_text_dataset()
-        response, metadata = user_vecto.ingest_text(batch.index.tolist()[:5], batch.tolist()[:5])
+        metadata = TestDataset.get_text_metadata(batch.index.tolist()[:5], batch.tolist()[:5])
+        response = user_vecto.ingest_text(batch.index.tolist()[:5], batch.tolist()[:5])
         results = response.json()['ids']
         user_db_twin.update_database(results, metadata)
         ref_db = user_db_twin.get_database()

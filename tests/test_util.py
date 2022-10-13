@@ -98,6 +98,45 @@ class TestDataset:
         random_text = dataset_text.iloc[random.randrange(len(dataset_text))]
         return [random_text]
 
+    @classmethod
+    def get_image_metadata(cls, batch_path_list) -> dict:
+        """Computes the metadata that is done in ingest_image.
+
+        Args: None
+
+        Returns: 
+            dict: the metadata
+        """
+        data = {'vector_space_id': vector_space_id, 'data': [], 'modality': 'IMAGE'}
+        files = []
+        for path in batch_path_list:
+            relative = "%s/%s" % (path.parent.name, path.name)
+            data['data'].append(json.dumps(relative))
+            files.append(open(path, 'rb'))
+        
+        for f in files:
+            f.close()
+
+        return data
+
+    @classmethod
+    def get_text_metadata(cls, batch_index_list:list, batch_text_list:list) -> dict:
+        """Computes the metadata that is done in ingest_text.
+
+        Args: None
+
+        Returns: 
+            dict: the metadata
+        """
+        data = {'vector_space_id': vector_space_id, 'data': [], 'modality': 'TEXT'}
+        files = []
+        for index, text in zip(batch_index_list, batch_text_list):
+            data['data'].append(json.dumps('text_{}'.format(index) + '_{}'.format(text)))
+
+        for f in files:
+            f.close()
+
+        return data
 
 class DatabaseTwin:
     """A class to represent a twin of the Vecto database, 

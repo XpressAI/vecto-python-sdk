@@ -48,7 +48,7 @@ class TestIngesting:
     # Test ingesting one image into Vecto
     def test_ingest_single_image(self):
         image = TestDataset.get_random_image()
-        response, _ = public_vecto.ingest_image(image)
+        response = public_vecto.ingest_image(image)
 
         logger.info(response.status_code)
         assert response.status_code == 403
@@ -56,7 +56,7 @@ class TestIngesting:
     # Test ingesting multiple images into Vecto
     def test_ingest_image(self):
         batch = TestDataset.get_image_dataset()[:5]
-        response, _ = public_vecto.ingest_image(batch)
+        response = public_vecto.ingest_image(batch)
         
         logger.info(response.status_code)      
         assert response.status_code == 403
@@ -64,7 +64,7 @@ class TestIngesting:
     # Test ingesting one text into Vecto
     def test_ingest_single_text(self):
         text = TestDataset.get_random_text()
-        response, _ = public_vecto.ingest_text([0], text)
+        response = public_vecto.ingest_text([0], text)
         
         logger.info(response.status_code)
         assert response.status_code == 403
@@ -72,7 +72,7 @@ class TestIngesting:
     # Test ingesting multiple texts into Vecto
     def test_ingest_text(self):
         batch = TestDataset.get_text_dataset()
-        response, _ = public_vecto.ingest_text(batch.index.tolist()[:5], batch.tolist()[:5])
+        response = public_vecto.ingest_text(batch.index.tolist()[:5], batch.tolist()[:5])
         
         logger.info(response.status_code)
         assert response.status_code == 403

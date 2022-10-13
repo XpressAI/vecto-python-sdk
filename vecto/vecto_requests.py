@@ -48,7 +48,7 @@ class Vecto():
 
         return results
 
-    def ingest_image(self, batch_path_list:list, **kwargs) -> tuple[dict, dict]:
+    def ingest_image(self, batch_path_list:list, **kwargs) -> object:
         """A function to ingest a batch of images into Vecto.
         Also works with single image aka batch of 1.
 
@@ -70,9 +70,9 @@ class Vecto():
         for f in files:
             f.close()
         
-        return results, data
+        return results
 
-    def ingest_text(self, batch_index_list:list, batch_text_list:list, **kwargs) -> tuple[dict, dict]:
+    def ingest_text(self, batch_index_list:list, batch_text_list:list, **kwargs) -> object:
         """A function to ingest a batch of text into Vecto. 
         Also works with single text aka batch of 1.
 
@@ -92,7 +92,7 @@ class Vecto():
         for f in files:
             f.close()
         
-        return results, data
+        return results
 
 
     # Lookup
