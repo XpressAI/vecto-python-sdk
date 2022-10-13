@@ -21,14 +21,14 @@ import json
 
 class Vecto():
 
-    def __init__(self, token, vector_space_id, vecto_base_url="https://api.vecto.ai", client=requests) -> None:
+    def __init__(self, token:str, vector_space_id:int or str, vecto_base_url="https://api.vecto.ai", client=requests) -> None:
         self.token = token
         self.vector_space_id = vector_space_id
         self.vecto_base_url = vecto_base_url
         self.client = client
 
     # Ingest
-    def ingest(self, data, files, **kwargs):
+    def ingest(self, data:dict, files:list, **kwargs):
         """A function to ingest a batch of data into Vecto.
         Also works with single entry aka batch of 1.
 
@@ -48,7 +48,7 @@ class Vecto():
 
         return results
 
-    def ingest_image(self, batch_path_list, **kwargs) -> tuple[dict, dict]:
+    def ingest_image(self, batch_path_list:list, **kwargs) -> tuple[dict, dict]:
         """A function to ingest a batch of images into Vecto.
         Also works with single image aka batch of 1.
 
@@ -72,7 +72,7 @@ class Vecto():
         
         return results, data
 
-    def ingest_text(self, batch_index_list, batch_text_list, **kwargs) -> tuple[dict, dict]:
+    def ingest_text(self, batch_index_list:list, batch_text_list:list, **kwargs) -> tuple[dict, dict]:
         """A function to ingest a batch of text into Vecto. 
         Also works with single text aka batch of 1.
 
@@ -97,7 +97,7 @@ class Vecto():
 
     # Lookup
 
-    def lookup(self, f, modality, top_k, ids=None, **kwargs) -> dict:
+    def lookup(self, f:str, modality:str, top_k:int, ids:list=None, **kwargs) -> object:
         """A function to search on Vecto, based on the lookup item.
 
         Args:
@@ -121,7 +121,7 @@ class Vecto():
 
     # Update
 
-    def update_vector_embeddings(self, batch, modality, **kwargs) -> dict:
+    def update_vector_embeddings(self, batch:list, modality:str, **kwargs) -> object:
         """A function to update current vector embeddings with new one.
 
         Args:
@@ -153,7 +153,7 @@ class Vecto():
 
         return results
 
-    def update_vector_metadata(self, vector_ids, new_metadata, **kwargs) -> dict:
+    def update_vector_metadata(self, vector_ids:list, new_metadata:list, **kwargs) -> object:
         """A function to update current vector metadata with new one.
 
         Args:
@@ -177,7 +177,7 @@ class Vecto():
 
     # Analogy
 
-    def get_analogy(self, query, analogy_from, analogy_to, top_k, **kwargs) -> dict: # can be text or images
+    def get_analogy(self, query:str, analogy_from:str, analogy_to:str, top_k:int, **kwargs) -> object: # can be text or images
         """A function to get an analogy from Vecto.
         It is also possible to do multiple analogies in one request body.
 
@@ -209,7 +209,7 @@ class Vecto():
 
         return results
 
-    def create_analogy(self, analogy_id, analogy_from, analogy_to, **kwargs) -> dict:
+    def create_analogy(self, analogy_id:int, analogy_from:str, analogy_to:str, **kwargs) -> object:
         """A function to create an analogy and store in Vecto.
         It is also possible to do multiple analogies in one request body.
 
@@ -238,7 +238,7 @@ class Vecto():
 
         return results
 
-    def delete_analogy(self, analogy_id, **kwargs) -> dict:
+    def delete_analogy(self, analogy_id:int, **kwargs) -> object:
         """A function to delete an analogy that is stored in Vecto.
 
         Args:
@@ -259,7 +259,7 @@ class Vecto():
 
     # Delete
 
-    def delete_vector_embeddings(self, vector_ids, **kwargs) -> dict:
+    def delete_vector_embeddings(self, vector_ids:list, **kwargs) -> object:
         """A function to delete vector embeddings that is stored in Vecto.
 
         Args:
@@ -277,7 +277,7 @@ class Vecto():
 
         return results
 
-    def delete_vector_space_entries(self, **kwargs) -> dict:
+    def delete_vector_space_entries(self, **kwargs) -> object:
         """A function to delete the current vector space in Vecto. 
         All ingested entries will be deleted as well.
 
