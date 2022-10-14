@@ -160,7 +160,8 @@ class TestUpdating:
     # Test updating a vector embedding using text on Vecto
     def test_update_single_text_vector_embedding(self):
         text = TestDataset.get_random_text()
-        response = public_vecto.update_vector_embeddings(text, modality='TEXT')
+        vector_id = random.sample(range(len(text)), len(text))
+        response = public_vecto.update_vector_embeddings(vector_id, text, modality='TEXT')
 
         logger.info(response.status_code)
         assert response.status_code == 403
@@ -168,7 +169,8 @@ class TestUpdating:
     # Test updating a vector embedding using image on Vecto
     def test_update_single_image_vector_embedding(self):
         image = TestDataset.get_random_image()
-        response = public_vecto.update_vector_embeddings(image, modality='IMAGE')
+        vector_id = random.sample(range(len(image)), len(image))
+        response = public_vecto.update_vector_embeddings(vector_id, image, modality='IMAGE')
 
         logger.info(response.status_code)
         assert response.status_code == 403
@@ -176,7 +178,8 @@ class TestUpdating:
     # Test updating multiple vector embeddings using text on Vecto
     def test_update_batch_text_vector_embedding(self):
         text = TestDataset.get_text_dataset()[:5]
-        response = public_vecto.update_vector_embeddings(text, modality='TEXT')
+        vector_id = random.sample(range(len(text)), len(text))
+        response = public_vecto.update_vector_embeddings(vector_id, text, modality='TEXT')
 
         logger.info(response.status_code)
         assert response.status_code == 403
@@ -184,7 +187,8 @@ class TestUpdating:
     # Test updating multiple vector embeddings using image on Vecto
     def test_update_batch_image_vector_embedding(self):
         image = TestDataset.get_image_dataset()[:5]
-        response = public_vecto.update_vector_embeddings(image, modality='IMAGE')
+        vector_id = random.sample(range(len(image)), len(image))
+        response = public_vecto.update_vector_embeddings(vector_id, image, modality='IMAGE')
 
         logger.info(response.status_code)
         assert response.status_code == 403
@@ -219,6 +223,7 @@ class TestAnalogy:
         top_k = 5
         response = public_vecto.get_analogy(query, analogy_from, analogy_to, top_k)
         results = response.json()['results']
+
 
         logger.info(response.status_code)
         assert response.status_code is 200

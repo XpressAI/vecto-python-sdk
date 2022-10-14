@@ -28,7 +28,7 @@ class Vecto():
         self.client = client
 
     # Ingest
-    def ingest(self, data:dict, files:list, **kwargs):
+    def ingest(self, data:dict, files:list, **kwargs) -> object:
         """A function to ingest a batch of data into Vecto.
         Also works with single entry aka batch of 1.
 
@@ -121,7 +121,7 @@ class Vecto():
 
     # Update
 
-    def update_vector_embeddings(self, batch:list, modality:str, **kwargs) -> object:
+    def update_vector_embeddings(self, vector_id, batch:list, modality:str, **kwargs) -> object:
         """A function to update current vector embeddings with new one.
 
         Args:
@@ -132,7 +132,7 @@ class Vecto():
         Returns:
             dict: Client response body
         """
-        vector_ids = random.sample(range(len(batch)), len(batch))
+
         files = []
         if modality == 'TEXT':
             for string in batch:
@@ -142,7 +142,7 @@ class Vecto():
                 files.append(open(path, 'rb'))
         
         results = self.client.post("%s/api/v0/update/vectors" % self.vecto_base_url,
-                    data={'vector_space_id': self.vector_space_id, 'id': vector_ids, 'modality': modality},
+                    data={'vector_space_id': self.vector_space_id, 'id': vector_id, 'modality': modality},
                     files=[('input', ('_', f, '_')) for f in files],
                     headers={"Authorization":"Bearer %s" % self.token},
                     **kwargs)
@@ -191,16 +191,14 @@ class Vecto():
         Returns:
             dict: Client response body
         """
-        query_f = query
-        afrom_f = analogy_from
-        ato_f = analogy_to
+
         data = MultipartEncoder(fields=[
             ('vector_space_id', str(self.vector_space_id)), ('top_k', str(top_k)), ('modality', 'TEXT'),
-            ('query', ('_', open(query_f, 'rb'), 'text/plain')), 
-            ('from', ('_', open(afrom_f, 'rb'), 'text/plain')), # Analogy 1
-            ('to', ('_', open(ato_f, 'rb'), 'text/plain')), # Analogy 1
-            ('from', ('_', open(afrom_f, 'rb'), 'text/plain')), # Analogy 2
-            ('to', ('_', open(ato_f, 'rb'), 'text/plain')), # Analogy 2
+            ('query', ('_', open(query, 'rb'), 'text/plain')), 
+            ('from', ('_', open(analogy_from, 'rb'), 'text/plain')), # Analogy 1
+            ('to', ('_', open(analogy_to, 'rb'), 'text/plain')), # Analogy 1
+            ('from', ('_', open(analogy_from, 'rb'), 'text/plain')), # Analogy 2
+            ('to', ('_', open(analogy_to, 'rb'), 'text/plain')), # Analogy 2
         ])
         results = self.client.post("%s/api/v0/analogy" % self.vecto_base_url,
                     data=data,
@@ -222,14 +220,13 @@ class Vecto():
         Returns:
             dict: Client response body
         """
-        afrom_f = analogy_from
-        ato_f = analogy_to
+
         data = MultipartEncoder(fields=[
             ('vector_space_id', str(self.vector_space_id)), ('analogy_id', str(analogy_id)), ('modality', 'TEXT'),
-            ('from', ('_', open(afrom_f, 'rb'), 'text/plain')), # Analogy 1
-            ('to', ('_', open(ato_f, 'rb'), 'text/plain')), # Analogy 1
-            ('from', ('_', open(afrom_f, 'rb'), 'text/plain')), # Analogy 2
-            ('to', ('_', open(ato_f, 'rb'), 'text/plain')), # Analogy 2
+            ('from', ('_', open(analogy_from, 'rb'), 'text/plain')), # Analogy 1
+            ('to', ('_', open(analogy_to, 'rb'), 'text/plain')), # Analogy 1
+            ('from', ('_', open(analogy_from, 'rb'), 'text/plain')), # Analogy 2
+            ('to', ('_', open(analogy_to, 'rb'), 'text/plain')), # Analogy 2
         ])
         results = self.client.post("%s/api/v0/analogy/create" % self.vecto_base_url,
                     data=data,
@@ -294,3 +291,30 @@ class Vecto():
                     **kwargs)
 
         return results
+
+
+    def check_common_error(self, status_code: int):
+        if status_code == 400:
+            raise Exception("Requested data is incorrect, please check your request.")
+        elif status_code == 401:
+            raise Exception("User is unauthorized, please check your access token or user/password.")
+        elif status_code == 404:
+            raise Exception("Object not found, please check your object id.")
+        elif status_code == 405:
+            raise Exception("Object is in use, please use another object.")
+        elif status_code == 409:
+            raise Exception("Object name already exists, please try another name.")
+        else:
+            raise Exception("Error status code <"+str(status_code)+">.")
+
+class ExceptionWithCode(Exception):
+
+    def __init__(self, code, message="Unexpected error received."):
+        self.code = code
+        self.message = message
+        super().__init__(self.message)
+
+    def __str__(self):
+        return f'{self.message}'
+
+
