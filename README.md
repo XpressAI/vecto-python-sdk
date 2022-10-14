@@ -9,7 +9,7 @@
 ## Building the Wheel and Installation
 Run `python setup.py bdist_wheel --universal` to create a .whl file in the dist folder.
 
-You can install that wheel file with `pip install vecto-*.whl` into your current environment (if the file is in the current working directory).
+You can install that wheel file with `pip install dist/vecto-*.whl` into your current environment (if the file is in the current working directory).
 
 
     
@@ -65,6 +65,6 @@ vs.lookup("Blue", "TEXT", top_k=5)
 ## Running the Tests
 We've setup an [action](https://github.com/XpressAI/vecto-python-sdk/actions/workflows/run-tests.yml) to automate the API tests. If you'd like to run the tests locally, export a valid `user_token`, `public_token`, and `vector_space_id`, then run:
 ```
-pytest vecto/tests/test_user.py
-pytest vecto/tests/test_public.py
+pytest tests/test_user.py
+pytest tests/test_public.py
 ```
