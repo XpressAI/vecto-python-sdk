@@ -16,7 +16,6 @@
 import requests
 import io
 from requests_toolbelt import MultipartEncoder
-import random
 import json
 
 class Vecto():
@@ -121,10 +120,11 @@ class Vecto():
 
     # Update
 
-    def update_vector_embeddings(self, vector_id, batch:list, modality:str, **kwargs) -> object:
+    def update_vector_embeddings(self, vector_ids, batch:list, modality:str, **kwargs) -> object:
         """A function to update current vector embeddings with new one.
 
         Args:
+            vector_ids(list): A list of vector ids 
             batch (list): A list of image paths or texts
             modality (str): The type of the file - "IMAGE" or "TEXT"
             **kwargs: Other keyword arguments for clients other than `requests`
@@ -142,7 +142,7 @@ class Vecto():
                 files.append(open(path, 'rb'))
         
         results = self.client.post("%s/api/v0/update/vectors" % self.vecto_base_url,
-                    data={'vector_space_id': self.vector_space_id, 'id': vector_id, 'modality': modality},
+                    data={'vector_space_id': self.vector_space_id, 'id': vector_ids, 'modality': modality},
                     files=[('input', ('_', f, '_')) for f in files],
                     headers={"Authorization":"Bearer %s" % self.token},
                     **kwargs)
@@ -197,8 +197,6 @@ class Vecto():
             ('query', ('_', open(query, 'rb'), 'text/plain')), 
             ('from', ('_', open(analogy_from, 'rb'), 'text/plain')), # Analogy 1
             ('to', ('_', open(analogy_to, 'rb'), 'text/plain')), # Analogy 1
-            ('from', ('_', open(analogy_from, 'rb'), 'text/plain')), # Analogy 2
-            ('to', ('_', open(analogy_to, 'rb'), 'text/plain')), # Analogy 2
         ])
         results = self.client.post("%s/api/v0/analogy" % self.vecto_base_url,
                     data=data,
@@ -225,8 +223,6 @@ class Vecto():
             ('vector_space_id', str(self.vector_space_id)), ('analogy_id', str(analogy_id)), ('modality', 'TEXT'),
             ('from', ('_', open(analogy_from, 'rb'), 'text/plain')), # Analogy 1
             ('to', ('_', open(analogy_to, 'rb'), 'text/plain')), # Analogy 1
-            ('from', ('_', open(analogy_from, 'rb'), 'text/plain')), # Analogy 2
-            ('to', ('_', open(analogy_to, 'rb'), 'text/plain')), # Analogy 2
         ])
         results = self.client.post("%s/api/v0/analogy/create" % self.vecto_base_url,
                     data=data,
@@ -291,30 +287,4 @@ class Vecto():
                     **kwargs)
 
         return results
-
-
-    def check_common_error(self, status_code: int):
-        if status_code == 400:
-            raise Exception("Requested data is incorrect, please check your request.")
-        elif status_code == 401:
-            raise Exception("User is unauthorized, please check your access token or user/password.")
-        elif status_code == 404:
-            raise Exception("Object not found, please check your object id.")
-        elif status_code == 405:
-            raise Exception("Object is in use, please use another object.")
-        elif status_code == 409:
-            raise Exception("Object name already exists, please try another name.")
-        else:
-            raise Exception("Error status code <"+str(status_code)+">.")
-
-class ExceptionWithCode(Exception):
-
-    def __init__(self, code, message="Unexpected error received."):
-        self.code = code
-        self.message = message
-        super().__init__(self.message)
-
-    def __str__(self):
-        return f'{self.message}'
-
 
