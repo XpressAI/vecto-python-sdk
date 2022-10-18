@@ -58,16 +58,10 @@ class VectoException(Exception):
 
 class Vecto():
 
-    def __init__(self, token:str, vector_space_id:int or str, vecto_base_url="https://api.vecto.ai", client=requests) -> None:
-        self.token = token
-        self.vector_space_id = vector_space_id
-        self.vecto_base_url = vecto_base_url
-        self.client = client
 
-    # def __init__(self, token:str=os.environ['user_token'], 
-    #             vector_space_id:int or str=os.environ['vector_space_id'], 
-    #             vecto_base_url:str="https://api.vecto.ai",
-    #             client=requests):
+    def __init__(self, token:str=os.environ['user_token'], 
+                vector_space_id:int or str=os.environ['vector_space_id'], 
+                vecto_base_url:str="https://api.vecto.ai", client=requests):
 
         self._client = Client(token, vector_space_id, vecto_base_url, client)
 
@@ -84,10 +78,10 @@ class Vecto():
         Returns:
             client response
         """
-        results = self.client.post("%s/api/v0/index" % self.vecto_base_url,
+        results = self._client.client.post("%s/api/v0/index" % self._client.vecto_base_url,
                                    data=data,
                                    files=[('input', ('_', f, '_')) for f in files],
-                                   headers={"Authorization": "Bearer %s" % self.token},
+                                   headers={"Authorization": "Bearer %s" % self._client.token},
                                    **kwargs)
 
         return results
@@ -103,7 +97,7 @@ class Vecto():
         Returns:
             tuple: A tuple of two dictionaries (client response body, client request body)
         """
-        data = {'vector_space_id': self.vector_space_id, 'data': [], 'modality': 'IMAGE'}
+        data = {'vector_space_id': self._client.vector_space_id, 'data': [], 'modality': 'IMAGE'}
         files = []
         for path in batch_path_list:
             relative = "%s/%s" % (path.parent.name, path.name)
@@ -127,7 +121,7 @@ class Vecto():
         Returns:
             tuple: A tuple of two dictionaries (client response body, client request body)
         """
-        data = {'vector_space_id': self.vector_space_id, 'data': [], 'modality': 'TEXT'}
+        data = {'vector_space_id': self._client.vector_space_id, 'data': [], 'modality': 'TEXT'}
         files = []
         for index, text in zip(batch_index_list, batch_text_list):
             data['data'].append(json.dumps('text_{}'.format(index) + '_{}'.format(text)))
@@ -154,10 +148,10 @@ class Vecto():
         Returns:
             dict: Client response body
         """
-        results = self.client.post("%s/api/v0/lookup" % self.vecto_base_url,
-                            data={'vector_space_id': self.vector_space_id, 'modality': modality, 'top_k': top_k, 'ids': ids},
+        results = self._client.client.post("%s/api/v0/lookup" % self._client.vecto_base_url,
+                            data={'vector_space_id': self._client.vector_space_id, 'modality': modality, 'top_k': top_k, 'ids': ids},
                             files={'query': f},
-                            headers={"Authorization":"Bearer %s" % self.token},
+                            headers={"Authorization":"Bearer %s" % self._client.token},
                             **kwargs)
 
         # VectoResponse([VectoResult(**r) for r in results.json()['results']])
@@ -190,10 +184,10 @@ class Vecto():
             for path in batch:
                 files.append(open(path, 'rb'))
         
-        results = self.client.post("%s/api/v0/update/vectors" % self.vecto_base_url,
-                    data={'vector_space_id': self.vector_space_id, 'id': vector_id, 'modality': modality},
+        results = self._client.client.post("%s/api/v0/update/vectors" % self._client.vecto_base_url,
+                    data={'vector_space_id': self._client.vector_space_id, 'id': vector_id, 'modality': modality},
                     files=[('input', ('_', f, '_')) for f in files],
-                    headers={"Authorization":"Bearer %s" % self.token},
+                    headers={"Authorization":"Bearer %s" % self._client.token},
                     **kwargs)
 
         if modality == 'IMAGE':
@@ -213,12 +207,12 @@ class Vecto():
         Returns:
             dict: Client response body
         """
-        payload = MultipartEncoder(fields=[('vector_space_id', str(self.vector_space_id))] + 
+        payload = MultipartEncoder(fields=[('vector_space_id', str(self._client.vector_space_id))] + 
                                             [('id', str(id)) for id in vector_ids] + 
                                             [('metadata', json.dumps(md)) for md in new_metadata])
-        results = self.client.post("%s/api/v0/update/metadata" % self.vecto_base_url,
+        results = self._client.client.post("%s/api/v0/update/metadata" % self._client.vecto_base_url,
                     data=payload,
-                    headers={"Authorization":"Bearer %s" % self.token, 'Content-Type': payload.content_type},
+                    headers={"Authorization":"Bearer %s" % self._client.token, 'Content-Type': payload.content_type},
                     **kwargs)
 
         return results
@@ -242,16 +236,16 @@ class Vecto():
         """
 
         data = MultipartEncoder(fields=[
-            ('vector_space_id', str(self.vector_space_id)), ('top_k', str(top_k)), ('modality', 'TEXT'),
+            ('vector_space_id', str(self._client.vector_space_id)), ('top_k', str(top_k)), ('modality', 'TEXT'),
             ('query', ('_', open(query, 'rb'), 'text/plain')), 
             ('from', ('_', open(analogy_from, 'rb'), 'text/plain')), # Analogy 1
             ('to', ('_', open(analogy_to, 'rb'), 'text/plain')), # Analogy 1
             ('from', ('_', open(analogy_from, 'rb'), 'text/plain')), # Analogy 2
             ('to', ('_', open(analogy_to, 'rb'), 'text/plain')), # Analogy 2
         ])
-        results = self.client.post("%s/api/v0/analogy" % self.vecto_base_url,
+        results = self._client.client.post("%s/api/v0/analogy" % self._client.vecto_base_url,
                     data=data,
-                    headers={"Authorization":"Bearer %s" % self.token, 'Content-Type': data.content_type},
+                    headers={"Authorization":"Bearer %s" % self._client.token, 'Content-Type': data.content_type},
                     **kwargs)
 
         return results
@@ -271,15 +265,15 @@ class Vecto():
         """
 
         data = MultipartEncoder(fields=[
-            ('vector_space_id', str(self.vector_space_id)), ('analogy_id', str(analogy_id)), ('modality', 'TEXT'),
+            ('vector_space_id', str(self._client.vector_space_id)), ('analogy_id', str(analogy_id)), ('modality', 'TEXT'),
             ('from', ('_', open(analogy_from, 'rb'), 'text/plain')), # Analogy 1
             ('to', ('_', open(analogy_to, 'rb'), 'text/plain')), # Analogy 1
             ('from', ('_', open(analogy_from, 'rb'), 'text/plain')), # Analogy 2
             ('to', ('_', open(analogy_to, 'rb'), 'text/plain')), # Analogy 2
         ])
-        results = self.client.post("%s/api/v0/analogy/create" % self.vecto_base_url,
+        results = self._client.client.post("%s/api/v0/analogy/create" % self._client.vecto_base_url,
                     data=data,
-                    headers={"Authorization":"Bearer %s" % self.token, 'Content-Type': data.content_type},
+                    headers={"Authorization":"Bearer %s" % self._client.token, 'Content-Type': data.content_type},
                     **kwargs)
 
         return results
@@ -294,10 +288,10 @@ class Vecto():
         Returns:
             dict: Client response body
         """
-        data = MultipartEncoder(fields={'vector_space_id': str(self.vector_space_id), 'analogy_id': str(analogy_id)})
-        results = self.client.post("%s/api/v0/analogy/delete" % self.vecto_base_url,
+        data = MultipartEncoder(fields={'vector_space_id': str(self._client.vector_space_id), 'analogy_id': str(analogy_id)})
+        results = self._client.client.post("%s/api/v0/analogy/delete" % self._client.vecto_base_url,
                     data=data,
-                    headers={"Authorization":"Bearer %s" % self.token, 'Content-Type': data.content_type},
+                    headers={"Authorization":"Bearer %s" % self._client.token, 'Content-Type': data.content_type},
                     **kwargs)
 
         return results
@@ -315,10 +309,10 @@ class Vecto():
         Returns:
             dict: Client response body
         """
-        payload = MultipartEncoder(fields=[('vector_space_id', str(self.vector_space_id))] + [('id', str(id)) for id in vector_ids])
-        results = self.client.post("%s/api/v0/delete" % self.vecto_base_url,
+        payload = MultipartEncoder(fields=[('vector_space_id', str(self._client.vector_space_id))] + [('id', str(id)) for id in vector_ids])
+        results = self._client.client.post("%s/api/v0/delete" % self._client.vecto_base_url,
                     data=payload,
-                    headers={"Authorization":"Bearer %s" % self.token, 'Content-Type': payload.content_type},
+                    headers={"Authorization":"Bearer %s" % self._client.token, 'Content-Type': payload.content_type},
                     **kwargs)
 
         return results
@@ -333,10 +327,10 @@ class Vecto():
         Returns:
             dict: Client response body
         """
-        payload = MultipartEncoder({'vector_space_id': str(self.vector_space_id)})
-        results = self.client.post("%s/api/v0/delete_all" % self.vecto_base_url,
+        payload = MultipartEncoder({'vector_space_id': str(self._client.vector_space_id)})
+        results = self._client.client.post("%s/api/v0/delete_all" % self._client.vecto_base_url,
                     data=payload,
-                    headers={"Authorization":"Bearer %s" % self.token, 'Content-Type': payload.content_type},
+                    headers={"Authorization":"Bearer %s" % self._client.token, 'Content-Type': payload.content_type},
                     **kwargs)
 
         return results

@@ -26,6 +26,7 @@ import pathlib
 import pandas as pd
 import random
 import json
+from typing import List
 
 random.seed(1234)
 
@@ -45,7 +46,7 @@ class TestDataset:
     # Get dataset
 
     @classmethod
-    def get_image_dataset(cls) -> list[str]:
+    def get_image_dataset(cls) -> List[str]:
         """Gets and returns the list of image paths to be ingested into Vecto.
 
         Args: None
@@ -58,7 +59,7 @@ class TestDataset:
         return dataset_images
 
     @classmethod
-    def get_random_image(cls) -> list[str]:
+    def get_random_image(cls) -> List[str]:
         """Gets and returns randomly one image path to be ingested into Vecto.
 
         Args: None
@@ -71,7 +72,7 @@ class TestDataset:
         return [random_image]
     
     @classmethod
-    def get_text_dataset(cls) -> list[str]:
+    def get_text_dataset(cls) -> List[str]:
         """Gets and returns the list of input text to be ingested into Vecto.
 
         Args: None
@@ -86,7 +87,7 @@ class TestDataset:
         return df['name']
     
     @classmethod
-    def get_random_text(cls) -> list[str]:
+    def get_random_text(cls) -> List[str]:
         """Gets and returns the list of image paths to be ingested into Vecto.
 
         Args: None
@@ -187,7 +188,7 @@ class DatabaseTwin:
         for vector_id in vector_ids:
             self.deleted_ids.append(vector_id)
 
-    def get_deleted_ids(self) -> list[int]:
+    def get_deleted_ids(self) -> List[int]:
         """A function to get the latest deleted vector ids, 
         which will be used to check if Vecto deleted the entries correctly.
 
