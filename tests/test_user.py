@@ -1,5 +1,19 @@
+# Copyright 2022 Xpress AI
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import io
-from vecto import VectoAPI
+from vecto import Vecto
 from test_util import DatabaseTwin, TestDataset
 import random
 import logging
@@ -23,7 +37,7 @@ import os
 token = os.environ['user_token']
 vector_space_id = int(os.environ['vector_space_id'])
 
-user_vecto = VectoAPI(token, vector_space_id)
+user_vecto = Vecto(token, vector_space_id)
 user_db_twin = DatabaseTwin()
 
 # Clear off vector space before start
@@ -47,7 +61,8 @@ class TestIngesting:
     # Test ingesting one image into Vecto
     def test_ingest_single_image(self):
         image = TestDataset.get_random_image()
-        response, metadata = user_vecto.ingest_image(image)
+        metadata = TestDataset.get_image_metadata(image)
+        response = user_vecto.ingest_image(image)
         logger.info(response.status_code)
         assert response.status_code is 200
         assert response.content is not None
@@ -67,7 +82,8 @@ class TestIngesting:
     # Test ingesting multiple images into Vecto
     def test_ingest_image(self):
         batch = TestDataset.get_image_dataset()[:5]
-        response, metadata = user_vecto.ingest_image(batch)
+        metadata = TestDataset.get_image_metadata(batch)
+        response = user_vecto.ingest_image(batch)
         results = response.json()['ids']
         user_db_twin.update_database(results, metadata)
         ref_db = user_db_twin.get_database()
@@ -132,7 +148,8 @@ class TestIngesting:
     def test_ingest_single_text(self):
         text = TestDataset.get_random_text()
         index = [0]
-        response, metadata = user_vecto.ingest_text(index, text)
+        metadata = TestDataset.get_text_metadata(index, text)
+        response = user_vecto.ingest_text(index, text)
         results = response.json()['ids']
         user_db_twin.update_database(results, metadata)
         ref_db = user_db_twin.get_database()
@@ -149,7 +166,8 @@ class TestIngesting:
     # Test ingesting multiple texts into Vecto
     def test_ingest_text(self):
         batch = TestDataset.get_text_dataset()
-        response, metadata = user_vecto.ingest_text(batch.index.tolist()[:5], batch.tolist()[:5])
+        metadata = TestDataset.get_text_metadata(batch.index.tolist()[:5], batch.tolist()[:5])
+        response = user_vecto.ingest_text(batch.index.tolist()[:5], batch.tolist()[:5])
         results = response.json()['ids']
         user_db_twin.update_database(results, metadata)
         ref_db = user_db_twin.get_database()
@@ -248,7 +266,8 @@ class TestUpdating:
     # Test updating a vector embedding using text on Vecto
     def test_update_single_text_vector_embedding(self):
         text = TestDataset.get_random_text()
-        response = user_vecto.update_vector_embeddings(text, modality='TEXT')
+        vector_id = random.sample(range(len(text)), len(text))
+        response = user_vecto.update_vector_embeddings(vector_id, text, modality='TEXT')
 
         logger.info(response.status_code)
         assert response.status_code is 200
@@ -257,7 +276,8 @@ class TestUpdating:
     # Test updating a vector embedding using image on Vecto
     def test_update_single_image_vector_embedding(self):
         image = TestDataset.get_random_image()
-        response = user_vecto.update_vector_embeddings(image, modality='IMAGE')
+        vector_id = random.sample(range(len(image)), len(image))
+        response = user_vecto.update_vector_embeddings(vector_id, image, modality='IMAGE')
 
         logger.info(response.status_code)
         assert response.status_code is 200
@@ -266,7 +286,8 @@ class TestUpdating:
     # Test updating multiple vector embeddings using text on Vecto
     def test_update_batch_text_vector_embedding(self):
         text = TestDataset.get_text_dataset()[:5]
-        response = user_vecto.update_vector_embeddings(text, modality='TEXT')
+        vector_id = random.sample(range(len(text)), len(text))
+        response = user_vecto.update_vector_embeddings(vector_id, text, modality='TEXT')
 
         logger.info(response.status_code)
         assert response.status_code is 200
@@ -275,7 +296,8 @@ class TestUpdating:
     # Test updating multiple vector embeddings using image on Vecto
     def test_update_batch_image_vector_embedding(self):
         image = TestDataset.get_image_dataset()[:5]
-        response = user_vecto.update_vector_embeddings(image, modality='IMAGE')
+        vector_id = random.sample(range(len(image)), len(image))
+        response = user_vecto.update_vector_embeddings(vector_id, image, modality='IMAGE')
 
         logger.info(response.status_code)
         assert response.status_code is 200
@@ -359,9 +381,9 @@ class TestAnalogy:
     
     # Test getting an analogy from Vecto
     def test_get_analogy(self): # can be text or images
-        query = 'vecto/api-tests/demo_dataset/navy.txt'
-        analogy_from = 'vecto/api-tests/demo_dataset/blue.txt'
-        analogy_to = 'vecto/api-tests/demo_dataset/orange.txt'
+        query = 'tests/demo_dataset/navy.txt'
+        analogy_from = 'tests/demo_dataset/blue.txt'
+        analogy_to = 'tests/demo_dataset/orange.txt'
         top_k = 10
         response = user_vecto.get_analogy(query, analogy_from, analogy_to, top_k)
         results = response.json()['results']
@@ -381,8 +403,8 @@ class TestAnalogy:
     # Test creating an analogy on Vecto
     # Create and delete analogy checks against each other - you need to create one first before you can delete
     def test_create_analogy(self):
-        analogy_from = 'vecto/api-tests/demo_dataset/blue.txt'
-        analogy_to = 'vecto/api-tests/demo_dataset/orange.txt'
+        analogy_from = 'tests/demo_dataset/blue.txt'
+        analogy_to = 'tests/demo_dataset/orange.txt'
         analogy_id = 1
         response = user_vecto.create_analogy(analogy_id, analogy_from, analogy_to)
 
