@@ -24,11 +24,32 @@ from typing import NamedTuple, List
 
 
 class Client:
-    def __init__(self, token, vector_space_id, vecto_base_url, client) -> None:
+    def __init__(self, token:str, vector_space_id:str or int, vecto_base_url: str, client) -> None:
         self.token = token
         self.vector_space_id = vector_space_id
         self.vecto_base_url = vecto_base_url
         self.client = client
+
+    def post(self, url, data, files, additional_header=None, kwargs=None):
+
+        headers = {"Authorization": "Bearer %s" % self.token}
+        
+        if additional_header is not None:
+            headers.update(additional_header)
+
+
+        if files is not None:
+
+            response = self.client.post("%s/%s" % (self.vecto_base_url, url),
+                                            data=data,
+                                            files=files,
+                                            headers=headers)
+        else:
+
+            response = self.client.post("%s/%s" % (self.vecto_base_url, url),
+                                            data=data,
+                                            headers=headers)
+        return response
 
     def check_common_error(self, status_code: int):
         if status_code == 400:
@@ -60,8 +81,9 @@ class Vecto():
 
 
     def __init__(self, token:str=os.environ['user_token'], 
-                vector_space_id:int or str=os.environ['vector_space_id'], 
-                vecto_base_url:str="https://api.vecto.ai", client=requests):
+                 vector_space_id:int or str=os.environ['vector_space_id'], 
+                 vecto_base_url:str="https://api.vecto.ai", 
+                 client=requests):
 
         self._client = Client(token, vector_space_id, vecto_base_url, client)
 
@@ -78,13 +100,11 @@ class Vecto():
         Returns:
             client response
         """
-        results = self._client.client.post("%s/api/v0/index" % self._client.vecto_base_url,
-                                   data=data,
-                                   files=[('input', ('_', f, '_')) for f in files],
-                                   headers={"Authorization": "Bearer %s" % self._client.token},
-                                   **kwargs)
 
-        return results
+        files = [('input', ('_', f, '_')) for f in files]
+        response = self._client.post('/api/v0/index', data, files, kwargs)
+
+        return response
 
     def ingest_image(self, batch_path_list:list, **kwargs) -> object:
         """A function to ingest a batch of images into Vecto.
@@ -104,11 +124,11 @@ class Vecto():
             data['data'].append(json.dumps(relative))
             files.append(open(path, 'rb'))
 
-        results = self.ingest(data, files)
+        response = self.ingest(data, files)
         for f in files:
             f.close()
         
-        return results
+        return response
 
     def ingest_text(self, batch_index_list:list, batch_text_list:list, **kwargs) -> object:
         """A function to ingest a batch of text into Vecto. 
@@ -126,11 +146,11 @@ class Vecto():
         for index, text in zip(batch_index_list, batch_text_list):
             data['data'].append(json.dumps('text_{}'.format(index) + '_{}'.format(text)))
 
-        results = self.ingest(data, batch_text_list)
+        response = self.ingest(data, batch_text_list)
         for f in files:
             f.close()
         
-        return results
+        return response
 
 
     # Lookup
@@ -147,20 +167,14 @@ class Vecto():
 
         Returns:
             dict: Client response body
+            
         """
-        results = self._client.client.post("%s/api/v0/lookup" % self._client.vecto_base_url,
-                            data={'vector_space_id': self._client.vector_space_id, 'modality': modality, 'top_k': top_k, 'ids': ids},
-                            files={'query': f},
-                            headers={"Authorization":"Bearer %s" % self._client.token},
-                            **kwargs)
 
-        # VectoResponse([VectoResult(**r) for r in results.json()['results']])
-        # if results.status_code == 200:
-        #     return VectoResponse([VectoResult(**r) for r in results.json()['results']])
+        data={'vector_space_id': self._client.vector_space_id, 'modality': modality, 'top_k': top_k, 'ids': ids}
+        files={'query': f}
+        response = self._client.post('/api/v0/lookup', data, files, kwargs)
 
-        # else:
-        #     VectoException(results.status_code)
-        return results
+        return response
 
     # Update
 
@@ -181,20 +195,21 @@ class Vecto():
             for string in batch:
                 files.append(io.StringIO(string))
         elif modality == 'IMAGE':
-            for path in batch:
-                files.append(open(path, 'rb'))
-        
-        results = self._client.client.post("%s/api/v0/update/vectors" % self._client.vecto_base_url,
-                    data={'vector_space_id': self._client.vector_space_id, 'id': vector_id, 'modality': modality},
-                    files=[('input', ('_', f, '_')) for f in files],
-                    headers={"Authorization":"Bearer %s" % self._client.token},
-                    **kwargs)
+            for file in batch:
+                files.append(open(file, 'rb'))
+
+        #TODO Probably add vector_space_id to default call
+        data={'vector_space_id': self._client.vector_space_id, 'id': vector_id, 'modality': modality}
+
+        #TODO probably make this into a wrapper call
+        temp_files=[('input', ('_', f, '_')) for f in files]
+        response = self._client.post('/api/v0/update/vectors', data, temp_files, kwargs)
 
         if modality == 'IMAGE':
             for f in files:
                 f.close()
 
-        return results
+        return response
 
     def update_vector_metadata(self, vector_ids:list, new_metadata:list, **kwargs) -> object:
         """A function to update current vector metadata with new one.
@@ -207,15 +222,14 @@ class Vecto():
         Returns:
             dict: Client response body
         """
-        payload = MultipartEncoder(fields=[('vector_space_id', str(self._client.vector_space_id))] + 
+        data = MultipartEncoder(fields=[('vector_space_id', str(self._client.vector_space_id))] + 
                                             [('id', str(id)) for id in vector_ids] + 
                                             [('metadata', json.dumps(md)) for md in new_metadata])
-        results = self._client.client.post("%s/api/v0/update/metadata" % self._client.vecto_base_url,
-                    data=payload,
-                    headers={"Authorization":"Bearer %s" % self._client.token, 'Content-Type': payload.content_type},
-                    **kwargs)
 
-        return results
+        additional_header={'Content-Type': data.content_type}
+        response = self._client.post('/api/v0/update/metadata', data, files=None, additional_header=additional_header)
+
+        return response
 
 
     # Analogy
@@ -238,17 +252,14 @@ class Vecto():
         data = MultipartEncoder(fields=[
             ('vector_space_id', str(self._client.vector_space_id)), ('top_k', str(top_k)), ('modality', 'TEXT'),
             ('query', ('_', open(query, 'rb'), 'text/plain')), 
-            ('from', ('_', open(analogy_from, 'rb'), 'text/plain')), # Analogy 1
-            ('to', ('_', open(analogy_to, 'rb'), 'text/plain')), # Analogy 1
-            ('from', ('_', open(analogy_from, 'rb'), 'text/plain')), # Analogy 2
-            ('to', ('_', open(analogy_to, 'rb'), 'text/plain')), # Analogy 2
+            ('from', ('_', open(analogy_from, 'rb'), 'text/plain')),
+            ('to', ('_', open(analogy_to, 'rb'), 'text/plain')),
         ])
-        results = self._client.client.post("%s/api/v0/analogy" % self._client.vecto_base_url,
-                    data=data,
-                    headers={"Authorization":"Bearer %s" % self._client.token, 'Content-Type': data.content_type},
-                    **kwargs)
 
-        return results
+        additional_header={'Content-Type': data.content_type}
+        response = self._client.post('/api/v0/analogy', data, files=None, additional_header=additional_header)
+
+        return response
 
     def create_analogy(self, analogy_id:int, analogy_from:str, analogy_to:str, **kwargs) -> object:
         """A function to create an analogy and store in Vecto.
@@ -266,17 +277,14 @@ class Vecto():
 
         data = MultipartEncoder(fields=[
             ('vector_space_id', str(self._client.vector_space_id)), ('analogy_id', str(analogy_id)), ('modality', 'TEXT'),
-            ('from', ('_', open(analogy_from, 'rb'), 'text/plain')), # Analogy 1
-            ('to', ('_', open(analogy_to, 'rb'), 'text/plain')), # Analogy 1
-            ('from', ('_', open(analogy_from, 'rb'), 'text/plain')), # Analogy 2
-            ('to', ('_', open(analogy_to, 'rb'), 'text/plain')), # Analogy 2
+            ('from', ('_', open(analogy_from, 'rb'), 'text/plain')),
+            ('to', ('_', open(analogy_to, 'rb'), 'text/plain')), 
         ])
-        results = self._client.client.post("%s/api/v0/analogy/create" % self._client.vecto_base_url,
-                    data=data,
-                    headers={"Authorization":"Bearer %s" % self._client.token, 'Content-Type': data.content_type},
-                    **kwargs)
 
-        return results
+        additional_header={'Content-Type': data.content_type}
+        response = self._client.post('/api/v0/analogy/create', data, files=None, additional_header=additional_header)
+
+        return response
 
     def delete_analogy(self, analogy_id:int, **kwargs) -> object:
         """A function to delete an analogy that is stored in Vecto.
@@ -289,12 +297,10 @@ class Vecto():
             dict: Client response body
         """
         data = MultipartEncoder(fields={'vector_space_id': str(self._client.vector_space_id), 'analogy_id': str(analogy_id)})
-        results = self._client.client.post("%s/api/v0/analogy/delete" % self._client.vecto_base_url,
-                    data=data,
-                    headers={"Authorization":"Bearer %s" % self._client.token, 'Content-Type': data.content_type},
-                    **kwargs)
+        additional_header={'Content-Type': data.content_type}
+        response = self._client.post('/api/v0/analogy/delete', data, files=None, additional_header=additional_header)
 
-        return results
+        return response
 
 
     # Delete
@@ -309,13 +315,12 @@ class Vecto():
         Returns:
             dict: Client response body
         """
-        payload = MultipartEncoder(fields=[('vector_space_id', str(self._client.vector_space_id))] + [('id', str(id)) for id in vector_ids])
-        results = self._client.client.post("%s/api/v0/delete" % self._client.vecto_base_url,
-                    data=payload,
-                    headers={"Authorization":"Bearer %s" % self._client.token, 'Content-Type': payload.content_type},
-                    **kwargs)
 
-        return results
+        data = MultipartEncoder(fields=[('vector_space_id', str(self._client.vector_space_id))] + [('id', str(id)) for id in vector_ids])
+        additional_header={'Content-Type': data.content_type}
+        response = self._client.post('/api/v0/delete', data, files=None, additional_header=additional_header)
+
+        return response
 
     def delete_vector_space_entries(self, **kwargs) -> object:
         """A function to delete the current vector space in Vecto. 
@@ -327,10 +332,9 @@ class Vecto():
         Returns:
             dict: Client response body
         """
-        payload = MultipartEncoder({'vector_space_id': str(self._client.vector_space_id)})
-        results = self._client.client.post("%s/api/v0/delete_all" % self._client.vecto_base_url,
-                    data=payload,
-                    headers={"Authorization":"Bearer %s" % self._client.token, 'Content-Type': payload.content_type},
-                    **kwargs)
 
-        return results
+        data = MultipartEncoder({'vector_space_id': str(self._client.vector_space_id)})
+        additional_header={'Content-Type': data.content_type}
+        response = self._client.post('/api/v0/delete_all', data, files=None, additional_header=additional_header)
+
+        return response
