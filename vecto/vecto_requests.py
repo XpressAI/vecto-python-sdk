@@ -30,25 +30,27 @@ class Client:
         self.vecto_base_url = vecto_base_url
         self.client = client
 
-    def post(self, url, data, files, additional_header=None, kwargs=None):
+    def post(self, url, data, files, kwargs=None):
 
         headers = {"Authorization": "Bearer %s" % self.token}
-        
-        if additional_header is not None:
-            headers.update(additional_header)
 
+        response = self.client.post("%s/%s" % (self.vecto_base_url, url),
+                                        data=data,
+                                        files=files,
+                                        headers=headers,
+                                        **kwargs)
 
-        if files is not None:
+        return response
 
-            response = self.client.post("%s/%s" % (self.vecto_base_url, url),
-                                            data=data,
-                                            files=files,
-                                            headers=headers)
-        else:
+    def post_form(self, url, data, kwargs=None):
 
-            response = self.client.post("%s/%s" % (self.vecto_base_url, url),
-                                            data=data,
-                                            headers=headers)
+        headers = {"Authorization": "Bearer %s" % self.token, 'Content-Type': data.content_type}
+
+        response = self.client.post("%s/%s" % (self.vecto_base_url, url),
+                                data=data,
+                                headers=headers,
+                                **kwargs)
+
         return response
 
     def check_common_error(self, status_code: int):
@@ -60,12 +62,13 @@ class Client:
             raise Exception("Error status code <"+str(status_code)+">.")
 
 
-class VectoResult(NamedTuple):
+class LookupResult(NamedTuple):
     data: object
     id: int
     similarity: float
-class VectoResponse(NamedTuple):
-    results: List[VectoResult]
+
+class LookupResponse(NamedTuple):
+    results: List[LookupResult]
 
 class VectoException(Exception):
 
@@ -143,6 +146,7 @@ class Vecto():
         """
         data = {'vector_space_id': self._client.vector_space_id, 'data': [], 'modality': 'TEXT'}
         files = []
+        
         for index, text in zip(batch_index_list, batch_text_list):
             data['data'].append(json.dumps('text_{}'.format(index) + '_{}'.format(text)))
 
@@ -226,8 +230,7 @@ class Vecto():
                                             [('id', str(id)) for id in vector_ids] + 
                                             [('metadata', json.dumps(md)) for md in new_metadata])
 
-        additional_header={'Content-Type': data.content_type}
-        response = self._client.post('/api/v0/update/metadata', data, files=None, additional_header=additional_header)
+        response = self._client.post_form('/api/v0/update/metadata', data, kwargs)
 
         return response
 
@@ -256,8 +259,7 @@ class Vecto():
             ('to', ('_', open(analogy_to, 'rb'), 'text/plain')),
         ])
 
-        additional_header={'Content-Type': data.content_type}
-        response = self._client.post('/api/v0/analogy', data, files=None, additional_header=additional_header)
+        response = self._client.post_form('/api/v0/analogy', data, kwargs)
 
         return response
 
@@ -281,8 +283,7 @@ class Vecto():
             ('to', ('_', open(analogy_to, 'rb'), 'text/plain')), 
         ])
 
-        additional_header={'Content-Type': data.content_type}
-        response = self._client.post('/api/v0/analogy/create', data, files=None, additional_header=additional_header)
+        response = self._client.post_form('/api/v0/analogy/create', data, kwargs)
 
         return response
 
@@ -297,8 +298,7 @@ class Vecto():
             dict: Client response body
         """
         data = MultipartEncoder(fields={'vector_space_id': str(self._client.vector_space_id), 'analogy_id': str(analogy_id)})
-        additional_header={'Content-Type': data.content_type}
-        response = self._client.post('/api/v0/analogy/delete', data, files=None, additional_header=additional_header)
+        response = self._client.post_form('/api/v0/analogy/delete', data, kwargs)
 
         return response
 
@@ -317,8 +317,7 @@ class Vecto():
         """
 
         data = MultipartEncoder(fields=[('vector_space_id', str(self._client.vector_space_id))] + [('id', str(id)) for id in vector_ids])
-        additional_header={'Content-Type': data.content_type}
-        response = self._client.post('/api/v0/delete', data, files=None, additional_header=additional_header)
+        response = self._client.post_form('/api/v0/delete', data, kwargs)
 
         return response
 
@@ -334,7 +333,6 @@ class Vecto():
         """
 
         data = MultipartEncoder({'vector_space_id': str(self._client.vector_space_id)})
-        additional_header={'Content-Type': data.content_type}
-        response = self._client.post('/api/v0/delete_all', data, files=None, additional_header=additional_header)
+        response = self._client.post_form('/api/v0/delete_all', data, kwargs)
 
         return response
