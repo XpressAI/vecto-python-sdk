@@ -33,7 +33,6 @@ class Client:
     def post(self, url, data, files, kwargs=None):
 
         headers = {"Authorization": "Bearer %s" % self.token}
-
         response = self.client.post("%s/%s" % (self.vecto_base_url, url),
                                         data=data,
                                         files=files,
@@ -42,10 +41,10 @@ class Client:
 
         return response
 
+
     def post_form(self, url, data, kwargs=None):
 
         headers = {"Authorization": "Bearer %s" % self.token, 'Content-Type': data.content_type}
-
         response = self.client.post("%s/%s" % (self.vecto_base_url, url),
                                 data=data,
                                 headers=headers,
@@ -62,6 +61,8 @@ class Client:
             raise Exception("Error status code <"+str(status_code)+">.")
 
 
+class VectoResponse(NamedTuple):
+    status_code: object
 class LookupResult(NamedTuple):
     data: object
     id: int
@@ -83,10 +84,21 @@ class VectoException(Exception):
 class Vecto():
 
 
-    def __init__(self, token:str=os.environ['user_token'], 
-                 vector_space_id:int or str=os.environ['vector_space_id'], 
+    def __init__(self, token:str=None, 
+                 vector_space_id:int or str=None, 
                  vecto_base_url:str="https://api.vecto.ai", 
                  client=requests):
+
+        if token or vector_space_id is None:
+
+            try:
+                token = os.environ['user_token']
+                vector_space_id = os.environ['vector_space_id']
+                print("Loaded token and vector_space_id from environment.")
+            
+            except Exception as e:
+                print("Unable to find vector space credentials.")
+                print(e)
 
         self._client = Client(token, vector_space_id, vecto_base_url, client)
 
