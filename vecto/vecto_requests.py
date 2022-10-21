@@ -62,14 +62,20 @@ class Client:
 
 
 class VectoResponse(NamedTuple):
-    status_code: object
+    status_code: int
 class LookupResult(NamedTuple):
     data: object
     id: int
     similarity: float
 
-class LookupResponse(NamedTuple):
+class LookupResponse(VectoResponse):
+    
     results: List[LookupResult]
+
+    def __new__(cls, status_code:int, results:List[LookupResult]):
+        self = super(LookupResponse, cls).__new__(cls, status_code)
+        self.results:List[LookupResult] = results
+        return self
 
 class VectoException(Exception):
 
@@ -89,7 +95,7 @@ class Vecto():
                  vecto_base_url:str="https://api.vecto.ai", 
                  client=requests):
 
-        if token or vector_space_id is None:
+        if (token or vector_space_id) is None:
 
             try:
                 token = os.environ['user_token']
@@ -119,6 +125,7 @@ class Vecto():
         files = [('input', ('_', f, '_')) for f in files]
         response = self._client.post('/api/v0/index', data, files, kwargs)
 
+        #return VectoResponse(response)
         return response
 
     def ingest_image(self, batch_path_list:list, **kwargs) -> object:
@@ -143,6 +150,7 @@ class Vecto():
         for f in files:
             f.close()
         
+        #return VectoResponse(response)
         return response
 
     def ingest_text(self, batch_index_list:list, batch_text_list:list, **kwargs) -> object:
@@ -166,6 +174,7 @@ class Vecto():
         for f in files:
             f.close()
         
+        #return VectoResponse(response)
         return response
 
 
@@ -190,6 +199,7 @@ class Vecto():
         files={'query': f}
         response = self._client.post('/api/v0/lookup', data, files, kwargs)
 
+        #return LookupResponse(results=[LookupResult(**r) for r in response.json()['results']], status_code=response.status_code)
         return response
 
     # Update
@@ -225,6 +235,7 @@ class Vecto():
             for f in files:
                 f.close()
 
+        #return VectoResponse(response)
         return response
 
     def update_vector_metadata(self, vector_ids:list, new_metadata:list, **kwargs) -> object:
@@ -244,6 +255,7 @@ class Vecto():
 
         response = self._client.post_form('/api/v0/update/metadata', data, kwargs)
 
+        #return VectoResponse(response)
         return response
 
 
@@ -273,6 +285,8 @@ class Vecto():
 
         response = self._client.post_form('/api/v0/analogy', data, kwargs)
 
+        ##return VectoResponse(response)
+        return response
         return response
 
     def create_analogy(self, analogy_id:int, analogy_from:str, analogy_to:str, **kwargs) -> object:
@@ -297,6 +311,7 @@ class Vecto():
 
         response = self._client.post_form('/api/v0/analogy/create', data, kwargs)
 
+        #return VectoResponse(response)
         return response
 
     def delete_analogy(self, analogy_id:int, **kwargs) -> object:
@@ -312,6 +327,7 @@ class Vecto():
         data = MultipartEncoder(fields={'vector_space_id': str(self._client.vector_space_id), 'analogy_id': str(analogy_id)})
         response = self._client.post_form('/api/v0/analogy/delete', data, kwargs)
 
+        #return VectoResponse(response)
         return response
 
 
@@ -330,7 +346,8 @@ class Vecto():
 
         data = MultipartEncoder(fields=[('vector_space_id', str(self._client.vector_space_id))] + [('id', str(id)) for id in vector_ids])
         response = self._client.post_form('/api/v0/delete', data, kwargs)
-
+        
+        #return VectoResponse(response)
         return response
 
     def delete_vector_space_entries(self, **kwargs) -> object:
@@ -347,4 +364,5 @@ class Vecto():
         data = MultipartEncoder({'vector_space_id': str(self._client.vector_space_id)})
         response = self._client.post_form('/api/v0/delete_all', data, kwargs)
 
+        #return VectoResponse(response)
         return response
