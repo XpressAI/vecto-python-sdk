@@ -258,12 +258,12 @@ class Vecto():
         #return VectoResponse(response)
         return response
 
-
     # Analogy
 
-    def get_analogy(self, query:str, analogy_from:str, analogy_to:str, top_k:int, **kwargs) -> object: # can be text or images
-        """A function to get an analogy from Vecto.
+    def compute_analogy(self, query:str, analogy_from:str or list, analogy_to:str or list, top_k:int, **kwargs) -> object: # can be text or images
+        """A function to compute an analogy using Vecto.
         It is also possible to do multiple analogies in one request body.
+        The computed analogy is not stored in Vecto.
 
         Args:
             query (str): Path to text file as query, e.g. orange
@@ -276,17 +276,31 @@ class Vecto():
             dict: Client response body
         """
 
-        data = MultipartEncoder(fields=[
-            ('vector_space_id', str(self._client.vector_space_id)), ('top_k', str(top_k)), ('modality', 'TEXT'),
-            ('query', ('_', open(query, 'rb'), 'text/plain')), 
-            ('from', ('_', open(analogy_from, 'rb'), 'text/plain')),
-            ('to', ('_', open(analogy_to, 'rb'), 'text/plain')),
-        ])
+        analogy_fields = [('vector_space_id', str(self._client.vector_space_id)), ('top_k', str(top_k)), ('modality', 'TEXT'),
+            ('query', ('_', open(query, 'rb'), 'text/plain'))]
 
+        if analogy_from and analogy_to is list:
+
+            assert len(analogy_from) == analogy_to, "Ensure that you provide a pair of analogy from and to."
+            
+            for analogy_from, analogy_to in zip(analogy_from, analogy_to):
+
+                analogy_fields.extend([
+                ('from', ('_', open(analogy_from, 'rb'), 'text/plain')),
+                ('to', ('_', open(analogy_to, 'rb'), 'text/plain'))
+                ])
+            
+        else:
+            analogy_fields.extend([
+                ('from', ('_', open(analogy_from, 'rb'), 'text/plain')),
+                ('to', ('_', open(analogy_to, 'rb'), 'text/plain'))
+                ])
+
+        data = MultipartEncoder(fields=analogy_fields)
+        
         response = self._client.post_form('/api/v0/analogy', data, kwargs)
 
         ##return VectoResponse(response)
-        return response
         return response
 
     def create_analogy(self, analogy_id:int, analogy_from:str, analogy_to:str, **kwargs) -> object:

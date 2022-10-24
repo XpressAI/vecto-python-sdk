@@ -380,12 +380,12 @@ class TestUpdating:
 class TestAnalogy:
     
     # Test getting an analogy from Vecto
-    def test_get_analogy(self): # can be text or images
+    def test_compute_analogy(self): # can be text or images
         query = 'tests/demo_dataset/navy.txt'
         analogy_from = 'tests/demo_dataset/blue.txt'
         analogy_to = 'tests/demo_dataset/orange.txt'
         top_k = 10
-        response = user_vecto.get_analogy(query, analogy_from, analogy_to, top_k)
+        response = user_vecto.compute_analogy(query, analogy_from, analogy_to, top_k)
         results = response.json()['results']
 
         logger.info(response.status_code)
