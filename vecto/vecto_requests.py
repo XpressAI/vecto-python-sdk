@@ -21,6 +21,7 @@ from requests_toolbelt import MultipartEncoder
 import json
 
 from typing import NamedTuple, List
+from .exceptions import VectoException, UnpairedAnalogy
 
 
 class Client:
@@ -39,6 +40,9 @@ class Client:
                                         headers=headers,
                                         **kwargs)
 
+        # if response.ok != True:
+        #     raise VectoException(response)
+
         return response
 
 
@@ -49,6 +53,9 @@ class Client:
                                 data=data,
                                 headers=headers,
                                 **kwargs)
+
+        # if response.ok != True:
+        #     raise VectoException(response)
 
         return response
 
@@ -77,16 +84,30 @@ class LookupResponse(VectoResponse):
         self.results:List[LookupResult] = results
         return self
 
-class VectoException(Exception):
 
-    def __init__(self, code, message="Unexpected error received."):
-        self.code = code
-        self.message = message
-        super().__init__(self.message)
 
-    def __str__(self):
-        return f'{self.message}'
+def build_analogy_query(analogy_fields, query, analogy_from, analogy_to):
+    
+    analogy_fields.extend(multipartencoder_query_builder("query", query))
 
+    if analogy_from is list:
+        assert len(analogy_from) == len(analogy_to), "Ensure that you provide a pair of analogy from and to."
+
+    for analogy_from, analogy_to in zip(analogy_from, analogy_to):
+        
+        analogy_fields.extend(multipartencoder_query_builder("from", analogy_from))
+        analogy_fields.extend(multipartencoder_query_builder("to", analogy_to))
+
+    return analogy_fields
+
+
+def multipartencoder_query_builder(query_category, query_string):
+
+    if query_string is os.path.exists:
+        return [(query_category, ('_', open(query_string, 'rb')))]
+
+    else:
+        return [(query_category, ('_', query_string))]
 class Vecto():
 
 
@@ -260,7 +281,9 @@ class Vecto():
 
     # Analogy
 
-    def compute_analogy(self, query:str, analogy_from:str or list, analogy_to:str or list, top_k:int, **kwargs) -> object: # can be text or images
+
+            
+    def compute_analogy(self, query:str, analogy_from:str or list, analogy_to:str or list, top_k:int, modality:str="TEXT", **kwargs) -> object: # can be text or images
         """A function to compute an analogy using Vecto.
         It is also possible to do multiple analogies in one request body.
         The computed analogy is not stored in Vecto.
@@ -276,32 +299,42 @@ class Vecto():
             dict: Client response body
         """
 
-        analogy_fields = [('vector_space_id', str(self._client.vector_space_id)), ('top_k', str(top_k)), ('modality', 'TEXT'),
-            ('query', ('_', open(query, 'rb'), 'text/plain'))]
+        
+        init_analogy_fields = [('vector_space_id', str(self._client.vector_space_id)), ('top_k', str(top_k)), ('modality', modality)]
+        analogy_fields = build_analogy_query(init_analogy_fields, query, analogy_from, analogy_to)
+        
+        data = MultipartEncoder(fields=analogy_fields)
+                
+        response = self._client.post_form('/api/v0/analogy', data, kwargs)
 
-        if analogy_from and analogy_to is list:
+        ##return VectoResponse(response)
+        return response
 
-            assert len(analogy_from) == analogy_to, "Ensure that you provide a pair of analogy from and to."
-            
-            for analogy_from, analogy_to in zip(analogy_from, analogy_to):
+    def compute_text_analogy(self, query:str, analogy_from:str or list, analogy_to:str or list, top_k:int, **kwargs) -> object: # can be text or images
+        """A function to compute a text analogy using Vecto.
+        It is also possible to do multiple analogies in one request body.
+        The computed analogy is not stored in Vecto.
 
-                analogy_fields.extend([
-                ('from', ('_', open(analogy_from, 'rb'), 'text/plain')),
-                ('to', ('_', open(analogy_to, 'rb'), 'text/plain'))
-                ])
-            
-        else:
-            analogy_fields.extend([
-                ('from', ('_', open(analogy_from, 'rb'), 'text/plain')),
-                ('to', ('_', open(analogy_to, 'rb'), 'text/plain'))
-                ])
+        Args:
+            query (str): Path to text file as query, e.g. orange
+            analogy_from (str): Path to text file as analogy from, e.g. ocean blue
+            analogy_to (str): Path to text file as analogy to, e.g. navy blue
+            top_k (int): The number of results to return
+            **kwargs: Other keyword arguments for clients other than `requests`
 
+        Returns:
+            dict: Client response body
+        """
+
+        init_analogy_fields = [('vector_space_id', str(self._client.vector_space_id)), ('top_k', str(top_k)), ('modality', "TEXT")]
+        analogy_fields = build_analogy_query(init_analogy_fields, query, analogy_from, analogy_to)
         data = MultipartEncoder(fields=analogy_fields)
         
         response = self._client.post_form('/api/v0/analogy', data, kwargs)
 
         ##return VectoResponse(response)
         return response
+
 
     def create_analogy(self, analogy_id:int, analogy_from:str, analogy_to:str, **kwargs) -> object:
         """A function to create an analogy and store in Vecto.
@@ -319,8 +352,8 @@ class Vecto():
 
         data = MultipartEncoder(fields=[
             ('vector_space_id', str(self._client.vector_space_id)), ('analogy_id', str(analogy_id)), ('modality', 'TEXT'),
-            ('from', ('_', open(analogy_from, 'rb'), 'text/plain')),
-            ('to', ('_', open(analogy_to, 'rb'), 'text/plain')), 
+            ('from', ('_', open(analogy_from, 'rb'))),
+            ('to', ('_', open(analogy_to, 'rb'))), 
         ])
 
         response = self._client.post_form('/api/v0/analogy/create', data, kwargs)
