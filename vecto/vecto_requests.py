@@ -40,9 +40,6 @@ class Client:
                                         headers=headers,
                                         **kwargs)
 
-        # if response.ok != True:
-        #     raise VectoException(response)
-
         return response
 
 
@@ -54,60 +51,18 @@ class Client:
                                 headers=headers,
                                 **kwargs)
 
-        # if response.ok != True:
-        #     raise VectoException(response)
-
         return response
 
-    def check_common_error(self, status_code: int):
-        if status_code == 400:
-            raise Exception("Requested data is incorrect, please check your request.")
-        elif status_code == 401:
-            raise Exception("User is unauthorized, please check your access token or user/password.")
-        else:
-            raise Exception("Error status code <"+str(status_code)+">.")
-
-
-class VectoResponse(NamedTuple):
-    status_code: int
+class IngestResponse(NamedTuple):
+    ids: List[int]
 class LookupResult(NamedTuple):
     data: object
     id: int
     similarity: float
 
-class LookupResponse(VectoResponse):
-    
+class LookupResponse(NamedTuple):
     results: List[LookupResult]
 
-    def __new__(cls, status_code:int, results:List[LookupResult]):
-        self = super(LookupResponse, cls).__new__(cls, status_code)
-        self.results:List[LookupResult] = results
-        return self
-
-
-
-def build_analogy_query(analogy_fields, query, analogy_from, analogy_to):
-    
-    analogy_fields.extend(multipartencoder_query_builder("query", query))
-
-    if analogy_from is list:
-        assert len(analogy_from) == len(analogy_to), "Ensure that you provide a pair of analogy from and to."
-
-    for analogy_from, analogy_to in zip(analogy_from, analogy_to):
-        
-        analogy_fields.extend(multipartencoder_query_builder("from", analogy_from))
-        analogy_fields.extend(multipartencoder_query_builder("to", analogy_to))
-
-    return analogy_fields
-
-
-def multipartencoder_query_builder(query_category, query_string):
-
-    if query_string is os.path.exists:
-        return [(query_category, ('_', open(query_string, 'rb')))]
-
-    else:
-        return [(query_category, ('_', query_string))]
 class Vecto():
 
 
@@ -123,6 +78,7 @@ class Vecto():
                 vector_space_id = os.environ['vector_space_id']
                 print("Loaded token and vector_space_id from environment.")
             
+            #TODO: make this into an exception
             except Exception as e:
                 print("Unable to find vector space credentials.")
                 print(e)
@@ -130,6 +86,7 @@ class Vecto():
         self._client = Client(token, vector_space_id, vecto_base_url, client)
 
     # Ingest
+
     def ingest(self, data:dict, files:list, **kwargs) -> object:
         """A function to ingest a batch of data into Vecto.
         Also works with single entry aka batch of 1.
@@ -146,8 +103,11 @@ class Vecto():
         files = [('input', ('_', f, '_')) for f in files]
         response = self._client.post('/api/v0/index', data, files, kwargs)
 
-        #return VectoResponse(response)
-        return response
+        if not response.ok:
+            raise VectoException(response)
+
+        return IngestResponse(response.json()['ids'])
+
 
     def ingest_image(self, batch_path_list:list, **kwargs) -> object:
         """A function to ingest a batch of images into Vecto.
@@ -167,12 +127,11 @@ class Vecto():
             data['data'].append(json.dumps(relative))
             files.append(open(path, 'rb'))
 
-        response = self.ingest(data, files)
+        ingest_response = self.ingest(data, files)
         for f in files:
             f.close()
-        
-        #return VectoResponse(response)
-        return response
+
+        return ingest_response
 
     def ingest_text(self, batch_index_list:list, batch_text_list:list, **kwargs) -> object:
         """A function to ingest a batch of text into Vecto. 
@@ -191,12 +150,11 @@ class Vecto():
         for index, text in zip(batch_index_list, batch_text_list):
             data['data'].append(json.dumps('text_{}'.format(index) + '_{}'.format(text)))
 
-        response = self.ingest(data, batch_text_list)
+        ingest_response = self.ingest(data, batch_text_list)
         for f in files:
             f.close()
         
-        #return VectoResponse(response)
-        return response
+        return ingest_response
 
 
     # Lookup
@@ -220,8 +178,7 @@ class Vecto():
         files={'query': f}
         response = self._client.post('/api/v0/lookup', data, files, kwargs)
 
-        #return LookupResponse(results=[LookupResult(**r) for r in response.json()['results']], status_code=response.status_code)
-        return response
+        return LookupResponse(results=[LookupResult(**r) for r in response.json()['results']])
 
     # Update
 
@@ -256,7 +213,6 @@ class Vecto():
             for f in files:
                 f.close()
 
-        #return VectoResponse(response)
         return response
 
     def update_vector_metadata(self, vector_ids:list, new_metadata:list, **kwargs) -> object:
@@ -276,13 +232,39 @@ class Vecto():
 
         response = self._client.post_form('/api/v0/update/metadata', data, kwargs)
 
-        #return VectoResponse(response)
+        if response.ok != True:
+            raise VectoException(response)
+
         return response
+
+
+    @classmethod
+    def multipartencoder_query_builder(self, query_category, query_string):
+
+        if query_string is os.path.exists:
+            return [(query_category, ('_', open(query_string, 'rb')))]
+
+        else:
+            return [(query_category, ('_', query_string))]
+
+    @classmethod
+    def build_analogy_query(self, analogy_fields, query, analogy_from, analogy_to):
+        
+        analogy_fields.extend(self.multipartencoder_query_builder("query", query))
+
+        if analogy_from is list:
+            assert len(analogy_from) == len(analogy_to), "Ensure that you provide a pair of analogy from and to."
+
+        for analogy_from, analogy_to in zip(analogy_from, analogy_to):
+            
+            analogy_fields.extend(self.multipartencoder_query_builder("from", analogy_from))
+            analogy_fields.extend(self.multipartencoder_query_builder("to", analogy_to))
+
+        return analogy_fields
+
 
     # Analogy
 
-
-            
     def compute_analogy(self, query:str, analogy_from:str or list, analogy_to:str or list, top_k:int, modality:str="TEXT", **kwargs) -> object: # can be text or images
         """A function to compute an analogy using Vecto.
         It is also possible to do multiple analogies in one request body.
@@ -301,14 +283,14 @@ class Vecto():
 
         
         init_analogy_fields = [('vector_space_id', str(self._client.vector_space_id)), ('top_k', str(top_k)), ('modality', modality)]
-        analogy_fields = build_analogy_query(init_analogy_fields, query, analogy_from, analogy_to)
+        analogy_fields = self.build_analogy_query(init_analogy_fields, query, analogy_from, analogy_to)
         
         data = MultipartEncoder(fields=analogy_fields)
                 
         response = self._client.post_form('/api/v0/analogy', data, kwargs)
 
-        ##return VectoResponse(response)
-        return response
+        return LookupResponse(results=[LookupResult(**r) for r in response.json()['results']])
+
 
     def compute_text_analogy(self, query:str, analogy_from:str or list, analogy_to:str or list, top_k:int, **kwargs) -> object: # can be text or images
         """A function to compute a text analogy using Vecto.
@@ -327,12 +309,11 @@ class Vecto():
         """
 
         init_analogy_fields = [('vector_space_id', str(self._client.vector_space_id)), ('top_k', str(top_k)), ('modality', "TEXT")]
-        analogy_fields = build_analogy_query(init_analogy_fields, query, analogy_from, analogy_to)
+        analogy_fields = self.build_analogy_query(init_analogy_fields, query, analogy_from, analogy_to)
         data = MultipartEncoder(fields=analogy_fields)
         
         response = self._client.post_form('/api/v0/analogy', data, kwargs)
 
-        ##return VectoResponse(response)
         return response
 
 
@@ -358,7 +339,6 @@ class Vecto():
 
         response = self._client.post_form('/api/v0/analogy/create', data, kwargs)
 
-        #return VectoResponse(response)
         return response
 
     def delete_analogy(self, analogy_id:int, **kwargs) -> object:
@@ -374,7 +354,6 @@ class Vecto():
         data = MultipartEncoder(fields={'vector_space_id': str(self._client.vector_space_id), 'analogy_id': str(analogy_id)})
         response = self._client.post_form('/api/v0/analogy/delete', data, kwargs)
 
-        #return VectoResponse(response)
         return response
 
 
@@ -394,7 +373,6 @@ class Vecto():
         data = MultipartEncoder(fields=[('vector_space_id', str(self._client.vector_space_id))] + [('id', str(id)) for id in vector_ids])
         response = self._client.post_form('/api/v0/delete', data, kwargs)
         
-        #return VectoResponse(response)
         return response
 
     def delete_vector_space_entries(self, **kwargs) -> object:
@@ -411,5 +389,4 @@ class Vecto():
         data = MultipartEncoder({'vector_space_id': str(self._client.vector_space_id)})
         response = self._client.post_form('/api/v0/delete_all', data, kwargs)
 
-        #return VectoResponse(response)
         return response
