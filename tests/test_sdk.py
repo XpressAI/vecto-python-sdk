@@ -44,14 +44,14 @@ user_db_twin = DatabaseTwin()
 # Clear off vector space before start
 @pytest.mark.clear
 def test_clear_vector_space_entries():
-    response = user_vecto.delete_vector_space_entries()
+    user_vecto.delete_vector_space_entries()
     
     f = io.StringIO('blue')
     lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
     
-    logger.info(response.status_code)
+    # logger.info(response.status_code)
     #assert response.status_code is 200 no longer needed since we don't return status code
-    assert response is not None
+    # assert response is not None
     logger.info("Checking if there's 0 lookup results: " + str(len(lookup_response.results) == 0))
     assert len(lookup_response.results) is 0
 
@@ -274,47 +274,52 @@ class TestUpdating:
     def test_update_single_text_vector_embedding(self):
         text = TestDataset.get_random_text()
         vector_id = random.sample(range(len(text)), len(text))
-        response = user_vecto.update_vector_embeddings(vector_id, text, modality='TEXT')
+        user_vecto.update_vector_embeddings(vector_id, text, modality='TEXT')
 
-        logger.info(response)
+        # logger.info(response)
         # assert response.status_code is 200
-        assert response is not None
+        # assert response is not None
+        # TODO: Make Assert on this test
 
     # Test updating a vector embedding using image on Vecto
     def test_update_single_image_vector_embedding(self):
         image = TestDataset.get_random_image()
         vector_id = random.sample(range(len(image)), len(image))
-        response = user_vecto.update_vector_embeddings(vector_id, image, modality='IMAGE')
+        user_vecto.update_vector_embeddings(vector_id, image, modality='IMAGE')
 
-        logger.info(response)
+        # logger.info(response)
         # assert response.status_code is 200
-        assert response is not None
+        # assert response is not None
+        # TODO: Make Assert on this test
 
     # Test updating multiple vector embeddings using text on Vecto
     def test_update_batch_text_vector_embedding(self):
         text = TestDataset.get_text_dataset()[:5]
         vector_id = random.sample(range(len(text)), len(text))
-        response = user_vecto.update_vector_embeddings(vector_id, text, modality='TEXT')
+        user_vecto.update_vector_embeddings(vector_id, text, modality='TEXT')
 
-        logger.info(response)
+        # logger.info(response)
         # assert response.status_code is 200
-        assert response is not None
+        # assert response is not None
+        # TODO: Make Assert on this test
+
 
     # Test updating multiple vector embeddings using image on Vecto
     def test_update_batch_image_vector_embedding(self):
         image = TestDataset.get_image_dataset()[:5]
         vector_id = random.sample(range(len(image)), len(image))
-        response = user_vecto.update_vector_embeddings(vector_id, image, modality='IMAGE')
+        user_vecto.update_vector_embeddings(vector_id, image, modality='IMAGE')
 
-        logger.info(response)
+        # logger.info(response)
         # assert response.status_code is 200
-        assert response is not None
+        # assert response is not None
+        # TODO: Make Assert on this test
     
     # Test updating metadata of a vector embedding on Vecto
     def test_update_single_vector_metadata(self):
         vector_id = random.randrange(0, 10)
         new_metadata = 'new_metadata'
-        response = user_vecto.update_vector_metadata([vector_id], [new_metadata])
+        user_vecto.update_vector_metadata([vector_id], [new_metadata])
         ref_db = user_db_twin.get_database()
 
         # Just a dummy lookup to return the specified ID - check specific entry
@@ -324,7 +329,6 @@ class TestUpdating:
 
         # logger.info(response)
         # assert response.status_code is 200
-        assert response is not None
         logger.info("Checking if metadata is updated: " + str(results.data == new_metadata))
         assert results.data == new_metadata
 
@@ -349,7 +353,7 @@ class TestUpdating:
         batch_len = 3
         vector_ids = random.sample(range(10), batch_len)
         new_metadata = ['new_metadata_{}'.format(i) for i in range(batch_len)]
-        response = user_vecto.update_vector_metadata(vector_ids, new_metadata)
+        user_vecto.update_vector_metadata(vector_ids, new_metadata)
         ref_db = user_db_twin.get_database()
         
         # Just a dummy lookup to return all the data in the vector space - check other entries
@@ -360,10 +364,6 @@ class TestUpdating:
             if result.id in vector_ids:
                 lookup_metadata.append(result.data)
         lookup_metadata.sort()
-
-        logger.info(response)
-        # assert response.status_code is 200
-        assert response is not None
 
         logger.info("Checking if metadata is updated: " + str(lookup_metadata == new_metadata))
         assert lookup_metadata == new_metadata
@@ -408,26 +408,39 @@ class TestAnalogy:
         logger.info("Checking if values in 'similarity' is float: " + str(isinstance(results[-1].similarity, float)))
         assert isinstance(results[-1].similarity, float)
 
+
+    # Test compute analogy from Vecto
+    # def test_compute_analogy_from_list(self): # can be text or images
+    #     query = "king"
+    #     analogy_from = ["male", "husband"]
+    #     analogy_to = ["female", "wife"]
+    #     top_k = 3
+    #     response = user_vecto.compute_analogy(query, analogy_from, analogy_to, top_k)
+    #     results = response.results
+                
+    #     logger.info("Checking if values in 'data' is king: " + str(isinstance(results[0].data, str)))
+    #     assert results[0].data is "king"
+
     # Test creating an analogy on Vecto
     # Create and delete analogy checks against each other - you need to create one first before you can delete
     def test_create_analogy(self):
         analogy_from = 'tests/demo_dataset/blue.txt'
         analogy_to = 'tests/demo_dataset/orange.txt'
         analogy_id = 1
-        response = user_vecto.create_analogy(analogy_id, analogy_from, analogy_to)
+        user_vecto.create_analogy(analogy_id, analogy_from, analogy_to)
 
-        logger.info(response)
-        # assert response.status_code is 200
-        assert response is not None
+        # logger.info(response)
+        # # assert response.status_code is 200
+        # assert response is not None
 
     # Test deleting an analogy from Vecto
     def test_delete_analogy(self):
         analogy_id = 1
-        response = user_vecto.delete_analogy(analogy_id)
+        user_vecto.delete_analogy(analogy_id)
         
-        logger.info(response)
+        # logger.info(response)
         # assert response.status_code is 200
-        assert response is not None
+        # assert response is not None
 
 @pytest.mark.delete
 class TestDelete:
@@ -435,7 +448,7 @@ class TestDelete:
     # Test deleting a single vector embedding from Vecto
     def test_delete_single_vector_embedding(self):
         vector_id = random.randrange(0, 10)
-        response = user_vecto.delete_vector_embeddings([vector_id])
+        user_vecto.delete_vector_embeddings([vector_id])
         ref_db = user_db_twin.get_database()
         user_db_twin.update_deleted_ids([vector_id])
 
@@ -444,9 +457,9 @@ class TestDelete:
         results = lookup_response.results
         deleted_ids = user_db_twin.get_deleted_ids()
        
-        logger.info(response)
+        # logger.info(response)
         # assert response.status_code is 200
-        assert response is not None
+        # assert response is not None
         logger.info("Checking if the length of result is 11: " + str(len(results) == (len(ref_db) - len(deleted_ids))))
         assert len(results) is (len(ref_db) - len(deleted_ids))
 
@@ -459,7 +472,7 @@ class TestDelete:
             rand_id = random.randrange(0, 10)
             if rand_id not in deleted_ids and rand_id not in vector_ids:
                 vector_ids.append(rand_id)
-        response = user_vecto.delete_vector_embeddings(vector_ids)
+        user_vecto.delete_vector_embeddings(vector_ids)
         ref_db = user_db_twin.get_database()
         user_db_twin.update_deleted_ids(vector_ids)
 
@@ -467,8 +480,8 @@ class TestDelete:
         lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
         results = lookup_response.results
        
-        logger.info(response)
+        # logger.info(response)
         # assert response.status_code is 200
-        assert response is not None
+        # assert response is not None
         logger.info("Checking if the length of result is 6: " + str(len(results) == (len(ref_db) - len(deleted_ids))))
         assert len(results) is (len(ref_db) - len(deleted_ids))

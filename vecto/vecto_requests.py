@@ -21,7 +21,7 @@ from requests_toolbelt import MultipartEncoder
 import json
 
 from typing import NamedTuple, List
-from .exceptions import VectoException, UnpairedAnalogy
+from .exceptions import VectoException, UnpairedAnalogy, UnknownVectorSpace
 
 
 class Client:
@@ -235,8 +235,8 @@ class Vecto():
         if response.ok != True:
             raise VectoException(response)
 
-        return response
 
+    # Analogy
 
     @classmethod
     def multipartencoder_query_builder(self, query_category, query_string):
@@ -253,7 +253,8 @@ class Vecto():
         analogy_fields.extend(self.multipartencoder_query_builder("query", query))
 
         if analogy_from is list:
-            assert len(analogy_from) == len(analogy_to), "Ensure that you provide a pair of analogy from and to."
+            if len(analogy_from) != len(analogy_to):
+                raise UnpairedAnalogy(Exception)
 
         for analogy_from, analogy_to in zip(analogy_from, analogy_to):
             
@@ -262,8 +263,6 @@ class Vecto():
 
         return analogy_fields
 
-
-    # Analogy
 
     def compute_analogy(self, query:str, analogy_from:str or list, analogy_to:str or list, top_k:int, modality:str="TEXT", **kwargs) -> object: # can be text or images
         """A function to compute an analogy using Vecto.
@@ -339,7 +338,8 @@ class Vecto():
 
         response = self._client.post_form('/api/v0/analogy/create', data, kwargs)
 
-        return response
+        if response.ok != True:
+            raise VectoException(response)
 
     def delete_analogy(self, analogy_id:int, **kwargs) -> object:
         """A function to delete an analogy that is stored in Vecto.
@@ -354,7 +354,8 @@ class Vecto():
         data = MultipartEncoder(fields={'vector_space_id': str(self._client.vector_space_id), 'analogy_id': str(analogy_id)})
         response = self._client.post_form('/api/v0/analogy/delete', data, kwargs)
 
-        return response
+        if response.ok != True:
+            raise VectoException(response)
 
 
     # Delete
@@ -373,7 +374,8 @@ class Vecto():
         data = MultipartEncoder(fields=[('vector_space_id', str(self._client.vector_space_id))] + [('id', str(id)) for id in vector_ids])
         response = self._client.post_form('/api/v0/delete', data, kwargs)
         
-        return response
+        if response.ok != True:
+            raise VectoException(response)
 
     def delete_vector_space_entries(self, **kwargs) -> object:
         """A function to delete the current vector space in Vecto. 
@@ -389,4 +391,5 @@ class Vecto():
         data = MultipartEncoder({'vector_space_id': str(self._client.vector_space_id)})
         response = self._client.post_form('/api/v0/delete_all', data, kwargs)
 
-        return response
+        if response.ok != True:
+            raise VectoException(response)
