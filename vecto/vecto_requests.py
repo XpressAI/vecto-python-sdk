@@ -21,7 +21,7 @@ from requests_toolbelt import MultipartEncoder
 import json
 
 from typing import NamedTuple, List
-from .exceptions import VectoException, UnpairedAnalogy, UnknownVectorSpace
+from .exceptions import VectoException, UnpairedAnalogy, UnknownVectorSpace, LookupException
 
 
 class Client:
@@ -109,54 +109,6 @@ class Vecto():
         return IngestResponse(response.json()['ids'])
 
 
-    def ingest_image(self, batch_path_list:list, **kwargs) -> object:
-        """A function to ingest a batch of images into Vecto.
-        Also works with single image aka batch of 1.
-
-        Args:
-            batch_path_list (list): List of image paths (or list of one image path if batch of 1)
-            **kwargs: Other keyword arguments for clients other than `requests`
-
-        Returns:
-            tuple: A tuple of two dictionaries (client response body, client request body)
-        """
-        data = {'vector_space_id': self._client.vector_space_id, 'data': [], 'modality': 'IMAGE'}
-        files = []
-        for path in batch_path_list:
-            relative = "%s/%s" % (path.parent.name, path.name)
-            data['data'].append(json.dumps(relative))
-            files.append(open(path, 'rb'))
-
-        ingest_response = self.ingest(data, files)
-        for f in files:
-            f.close()
-
-        return ingest_response
-
-    def ingest_text(self, batch_index_list:list, batch_text_list:list, **kwargs) -> object:
-        """A function to ingest a batch of text into Vecto. 
-        Also works with single text aka batch of 1.
-
-        Args:
-            batch_text_list (list): List of texts (or list of one text if batch of 1)
-            **kwargs: Other keyword arguments for clients other than `requests`
-
-        Returns:
-            tuple: A tuple of two dictionaries (client response body, client request body)
-        """
-        data = {'vector_space_id': self._client.vector_space_id, 'data': [], 'modality': 'TEXT'}
-        files = []
-        
-        for index, text in zip(batch_index_list, batch_text_list):
-            data['data'].append(json.dumps('text_{}'.format(index) + '_{}'.format(text)))
-
-        ingest_response = self.ingest(data, batch_text_list)
-        for f in files:
-            f.close()
-        
-        return ingest_response
-
-
     # Lookup
 
     def lookup(self, f:str, modality:str, top_k:int, ids:list=None, **kwargs) -> object:
@@ -178,7 +130,12 @@ class Vecto():
         files={'query': f}
         response = self._client.post('/api/v0/lookup', data, files, kwargs)
 
-        return LookupResponse(results=[LookupResult(**r) for r in response.json()['results']])
+        if response.ok != True:
+            raise LookupException(response)
+            
+        else:
+            return LookupResponse(results=[LookupResult(**r) for r in response.json()['results']])
+
 
     # Update
 

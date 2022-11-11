@@ -72,7 +72,7 @@ class TestDataset:
         return [random_image]
     
     @classmethod
-    def get_text_dataset(cls) -> List[str]:
+    def get_color_dataset(cls) -> List[str]:
         """Gets and returns the list of input text to be ingested into Vecto.
 
         Args: None
@@ -80,14 +80,31 @@ class TestDataset:
         Returns: 
             list: a list of input text
         """
+            
         df = pd.read_csv(dataset_path.joinpath('colors.csv'), 
                 names=['color', 'name', 'hex', 'R', 'G', 'B'])
         df = df[:100]
 
         return df['name']
-    
+
     @classmethod
-    def get_random_text(cls) -> List[str]:
+    def get_profession_dataset(cls) -> List[str]:
+        """Gets and returns the list of input text to be ingested into Vecto.
+
+        Args: None
+
+        Returns: 
+            list: a list of input text
+        """
+
+        file = "tests/demo_dataset/profession.txt"
+        with open(file) as f:
+            professions = [profession for profession in f]        
+            
+        return professions
+
+    @classmethod
+    def get_random_text(cls, text_dataset) -> List[str]:
         """Gets and returns the list of image paths to be ingested into Vecto.
 
         Args: None
@@ -95,7 +112,7 @@ class TestDataset:
         Returns: 
             list: a random text
         """
-        dataset_text = cls.get_text_dataset()
+        dataset_text = text_dataset()
         random_text = dataset_text.iloc[random.randrange(len(dataset_text))]
         return [random_text]
 

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import io
-from vecto import Vecto
+from vecto import Vecto, vecto_toolbelt
 from vecto.exceptions import VectoException
 from test_util import DatabaseTwin, TestDataset
 import random
@@ -49,9 +49,6 @@ def test_clear_vector_space_entries():
     f = io.StringIO('blue')
     lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
     
-    # logger.info(response.status_code)
-    #assert response.status_code is 200 no longer needed since we don't return status code
-    # assert response is not None
     logger.info("Checking if there's 0 lookup results: " + str(len(lookup_response.results) == 0))
     assert len(lookup_response.results) is 0
 
@@ -63,10 +60,8 @@ class TestIngesting:
     def test_ingest_single_image(self):
         image = TestDataset.get_random_image()
         metadata = TestDataset.get_image_metadata(image)
-        response = user_vecto.ingest_image(image)
-        # logger.info(response.status_code) 
-        # assert response.status_code is 200
-        # TODO -> assert that exception is not raised
+        response = vecto_toolbelt.ingest_image(user_vecto, image)
+
         assert response is not None
 
         results = response.ids
@@ -75,7 +70,8 @@ class TestIngesting:
 
 
         logger.info('Number of ingested input: ' + str(len(results)))
-        assert len(results) == 1 # ingested only 1 input so it should return only list of length 1
+        assert len(results) == 1 # ingested only 1 input so it should return only list of length 1 
+                                    #this should be len(batch)
         
         logger.info(f'Check if ID of last ingested input is {ref_db["id"].iloc[-1]}: ' + 
                         str(results[-1] == ref_db["id"].iloc[-1]))
@@ -83,15 +79,14 @@ class TestIngesting:
 
     # Test ingesting multiple images into Vecto
     def test_ingest_image(self):
+        
         batch = TestDataset.get_image_dataset()[:5]
         metadata = TestDataset.get_image_metadata(batch)
-        response = user_vecto.ingest_image(batch)
+        response = vecto_toolbelt.ingest_image(user_vecto, batch)
         results = response.ids
         user_db_twin.update_database(results, metadata)
         ref_db = user_db_twin.get_database()
         
-        # logger.info(response.status_code)
-        # assert response.status_code is 200
         assert response is not None
         
         logger.info('Number of ingested input:' + str(len(results)))
@@ -119,9 +114,6 @@ class TestIngesting:
 
             for f in files:
                 f.close()
-        # logger.info(response.status_code)
-        # assert response.status_code != 200
-        # assert response is not None
 
     # Test ingesting multiple images with source attribute into Vecto
     def test_ingest_image_with_valid_source(self):
@@ -153,10 +145,10 @@ class TestIngesting:
 
     # Test ingesting one text into Vecto
     def test_ingest_single_text(self):
-        text = TestDataset.get_random_text()
+        text = TestDataset.get_random_text(TestDataset.get_color_dataset)
         index = [0]
         metadata = TestDataset.get_text_metadata(index, text)
-        response = user_vecto.ingest_text(index, text)
+        response = vecto_toolbelt.ingest_text(user_vecto, index, text)
         results = response.ids
         user_db_twin.update_database(results, metadata)
         ref_db = user_db_twin.get_database()
@@ -172,9 +164,9 @@ class TestIngesting:
 
     # Test ingesting multiple texts into Vecto
     def test_ingest_text(self):
-        batch = TestDataset.get_text_dataset()
+        batch = TestDataset.get_color_dataset()
         metadata = TestDataset.get_text_metadata(batch.index.tolist()[:5], batch.tolist()[:5])
-        response = user_vecto.ingest_text(batch.index.tolist()[:5], batch.tolist()[:5])
+        response = vecto_toolbelt.ingest_text(user_vecto, batch.index.tolist()[:5], batch.tolist()[:5])
         results = response.ids
         user_db_twin.update_database(results, metadata)
         ref_db = user_db_twin.get_database()
@@ -255,8 +247,6 @@ class TestLookup:
             response_k100 = user_vecto.lookup(f, modality='IMAGE', top_k=100)
         results_k100 = response_k100.results
 
-        # logger.info(response_k100)
-        # assert response_k100.status_code is 200
         assert response_k100 is not None
         logger.info("Checking if there's 17 lookup results: " + str(len(results_k100) == 17))
         assert len(results_k100) is 17
@@ -272,14 +262,9 @@ class TestUpdating:
     
     # Test updating a vector embedding using text on Vecto
     def test_update_single_text_vector_embedding(self):
-        text = TestDataset.get_random_text()
+        text = TestDataset.get_random_text(TestDataset.get_color_dataset)
         vector_id = random.sample(range(len(text)), len(text))
         user_vecto.update_vector_embeddings(vector_id, text, modality='TEXT')
-
-        # logger.info(response)
-        # assert response.status_code is 200
-        # assert response is not None
-        # TODO: Make Assert on this test
 
     # Test updating a vector embedding using image on Vecto
     def test_update_single_image_vector_embedding(self):
@@ -287,22 +272,11 @@ class TestUpdating:
         vector_id = random.sample(range(len(image)), len(image))
         user_vecto.update_vector_embeddings(vector_id, image, modality='IMAGE')
 
-        # logger.info(response)
-        # assert response.status_code is 200
-        # assert response is not None
-        # TODO: Make Assert on this test
-
     # Test updating multiple vector embeddings using text on Vecto
     def test_update_batch_text_vector_embedding(self):
-        text = TestDataset.get_text_dataset()[:5]
+        text = TestDataset.get_color_dataset()[:5]
         vector_id = random.sample(range(len(text)), len(text))
         user_vecto.update_vector_embeddings(vector_id, text, modality='TEXT')
-
-        # logger.info(response)
-        # assert response.status_code is 200
-        # assert response is not None
-        # TODO: Make Assert on this test
-
 
     # Test updating multiple vector embeddings using image on Vecto
     def test_update_batch_image_vector_embedding(self):
@@ -310,11 +284,6 @@ class TestUpdating:
         vector_id = random.sample(range(len(image)), len(image))
         user_vecto.update_vector_embeddings(vector_id, image, modality='IMAGE')
 
-        # logger.info(response)
-        # assert response.status_code is 200
-        # assert response is not None
-        # TODO: Make Assert on this test
-    
     # Test updating metadata of a vector embedding on Vecto
     def test_update_single_vector_metadata(self):
         vector_id = random.randrange(0, 10)
@@ -327,8 +296,6 @@ class TestUpdating:
         lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=1, ids=vector_id)
         results = lookup_response.results[0]
 
-        # logger.info(response)
-        # assert response.status_code is 200
         logger.info("Checking if metadata is updated: " + str(results.data == new_metadata))
         assert results.data == new_metadata
 
@@ -409,18 +376,6 @@ class TestAnalogy:
         assert isinstance(results[-1].similarity, float)
 
 
-    # Test compute analogy from Vecto
-    # def test_compute_analogy_from_list(self): # can be text or images
-    #     query = "king"
-    #     analogy_from = ["male", "husband"]
-    #     analogy_to = ["female", "wife"]
-    #     top_k = 3
-    #     response = user_vecto.compute_analogy(query, analogy_from, analogy_to, top_k)
-    #     results = response.results
-                
-    #     logger.info("Checking if values in 'data' is king: " + str(isinstance(results[0].data, str)))
-    #     assert results[0].data is "king"
-
     # Test creating an analogy on Vecto
     # Create and delete analogy checks against each other - you need to create one first before you can delete
     def test_create_analogy(self):
@@ -429,18 +384,10 @@ class TestAnalogy:
         analogy_id = 1
         user_vecto.create_analogy(analogy_id, analogy_from, analogy_to)
 
-        # logger.info(response)
-        # # assert response.status_code is 200
-        # assert response is not None
-
     # Test deleting an analogy from Vecto
     def test_delete_analogy(self):
         analogy_id = 1
         user_vecto.delete_analogy(analogy_id)
-        
-        # logger.info(response)
-        # assert response.status_code is 200
-        # assert response is not None
 
 @pytest.mark.delete
 class TestDelete:
@@ -457,9 +404,6 @@ class TestDelete:
         results = lookup_response.results
         deleted_ids = user_db_twin.get_deleted_ids()
        
-        # logger.info(response)
-        # assert response.status_code is 200
-        # assert response is not None
         logger.info("Checking if the length of result is 11: " + str(len(results) == (len(ref_db) - len(deleted_ids))))
         assert len(results) is (len(ref_db) - len(deleted_ids))
 
@@ -480,8 +424,24 @@ class TestDelete:
         lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
         results = lookup_response.results
        
-        # logger.info(response)
-        # assert response.status_code is 200
-        # assert response is not None
         logger.info("Checking if the length of result is 6: " + str(len(results) == (len(ref_db) - len(deleted_ids))))
         assert len(results) is (len(ref_db) - len(deleted_ids))
+
+
+    # # Test compute analogy from Vecto
+    # def test_compute_analogy_from_list(self): 
+
+    #     user_vecto.delete_vector_space_entries()
+    #     import pdb; pdb.set_trace()
+    #     batch = TestDataset.get_profession_dataset()
+    #     response = vecto_toolbelt.ingest_text(user_vecto, range(0, len(batch)), batch)
+
+    #     query = "king"
+    #     analogy_from = ["male", "husband"]
+    #     analogy_to = ["female", "wife"]
+    #     top_k = 3
+    #     response = user_vecto.compute_analogy(query, analogy_from, analogy_to, top_k)
+    #     results = response.results
+
+    #     logger.info("Checking if values in 'data' is king: " + str(isinstance(results[0].data, str)))
+    #     assert results[0].data is "king"
