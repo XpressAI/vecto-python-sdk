@@ -99,7 +99,7 @@ class TestDataset:
 
         file = "tests/demo_dataset/profession.txt"
         with open(file) as f:
-            professions = [profession for profession in f]        
+            professions = [profession.rstrip() for profession in f]        
             
         return professions
 
@@ -129,6 +129,7 @@ class TestDataset:
         files = []
         for path in batch_path_list:
             relative = "%s/%s" % (path.parent.name, path.name)
+            # relative = ""
             data['data'].append(json.dumps(relative))
             files.append(open(path, 'rb'))
         

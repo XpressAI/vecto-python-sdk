@@ -17,8 +17,11 @@ def ingest_image(vs, batch_path_list:list, **kwargs) -> object:
     files = []
     for path in batch_path_list:
         relative = "%s/%s" % (path.parent.name, path.name)
+        # relative = ""
         data['data'].append(json.dumps(relative))
         files.append(open(path, 'rb'))
+
+    
 
     response = vs.ingest(data, files)
     for f in files:
@@ -45,14 +48,12 @@ def ingest_text(vs, batch_index_list:list, batch_text_list:list, **kwargs) -> ob
         tuple: A tuple of two dictionaries (client response body, client request body)
     """
     data = {'vector_space_id': vs._client.vector_space_id, 'data': [], 'modality': 'TEXT'}
-    files = []
     for index, text in zip(batch_index_list, batch_text_list):
         data['data'].append(json.dumps('text_{}'.format(index) + '_{}'.format(text)))
+    # import pdb; pdb.set_trace()
 
     response = vs.ingest(data, batch_text_list)
-    for f in files:
-        f.close()
-    
+
     return response
 
 def ingest_all_text(path_list,text_list, batch_size=64):

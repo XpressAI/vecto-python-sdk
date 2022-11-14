@@ -21,7 +21,7 @@ from requests_toolbelt import MultipartEncoder
 import json
 
 from typing import NamedTuple, List
-from .exceptions import VectoException, UnpairedAnalogy, UnknownVectorSpace, LookupException
+from .exceptions import VectoException, UnpairedAnalogy, ForbiddenException, LookupException
 
 
 class Client:
