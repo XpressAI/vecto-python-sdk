@@ -21,7 +21,7 @@ from requests_toolbelt import MultipartEncoder
 import json
 
 from typing import NamedTuple, List
-from .exceptions import VectoException, UnpairedAnalogy, ForbiddenException, LookupException
+from .exceptions import VectoException, VectoClientException, UnpairedAnalogy, ForbiddenException, LookupException
 
 
 class Client:
@@ -104,7 +104,7 @@ class Vecto():
         response = self._client.post('/api/v0/index', data, files, kwargs)
 
         if not response.ok:
-            raise VectoException(response)
+            raise VectoClientException(response)
 
         return IngestResponse(response.json()['ids'])
 
@@ -190,7 +190,7 @@ class Vecto():
         response = self._client.post_form('/api/v0/update/metadata', data, kwargs)
 
         if response.ok != True:
-            raise VectoException(response)
+            raise VectoClientException(response)
 
 
     # Analogy
@@ -296,7 +296,7 @@ class Vecto():
         response = self._client.post_form('/api/v0/analogy/create', data, kwargs)
 
         if response.ok != True:
-            raise VectoException(response)
+            raise VectoClientException(response)
 
     def delete_analogy(self, analogy_id:int, **kwargs) -> object:
         """A function to delete an analogy that is stored in Vecto.
@@ -312,7 +312,7 @@ class Vecto():
         response = self._client.post_form('/api/v0/analogy/delete', data, kwargs)
 
         if response.ok != True:
-            raise VectoException(response)
+            raise VectoClientException(response)
 
 
     # Delete
@@ -332,7 +332,7 @@ class Vecto():
         response = self._client.post_form('/api/v0/delete', data, kwargs)
         
         if response.ok != True:
-            raise VectoException(response)
+            raise VectoClientException(response)
 
     def delete_vector_space_entries(self, **kwargs) -> object:
         """A function to delete the current vector space in Vecto. 
@@ -349,4 +349,4 @@ class Vecto():
         response = self._client.post_form('/api/v0/delete_all', data, kwargs)
 
         if response.ok != True:
-            raise VectoException(response)
+            raise VectoClientException(response)

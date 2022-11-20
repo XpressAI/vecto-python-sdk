@@ -1,9 +1,14 @@
 class VectoException(Exception):
+    """The base exception class for all Vecto exceptions."""
 
-    status_code: int
+
+class VectoClientException(VectoException):
+    ''''base class for Vecto Client Exceptions'''
 
     def __init__(self, response):
+
         self.status_code = response.status_code
+        print("Error Code [%s]."% self.status_code)
 
         if self.status_code == 401:
             raise UnauthorizedException(self.status_code)
@@ -15,9 +20,9 @@ class VectoException(Exception):
             raise NotFoundException(self.status_code)
 
         if 500 <= self.status_code <= 599:
-            raise ServiceException(self.status_code)
+            raise ServiceException()
 
-        self.message = "Error! Received error code " + str(self.status_code)
+        # self.message = "Error! Received error code " + str(self.status_code)
 
         super().__init__(self.message)
 
@@ -51,8 +56,7 @@ class NotFoundException(VectoException):
     def __str__(self):
         return f'{self.message}'
 class ServiceException(VectoException):
-    def __init__(self, code, message="The request you've submitted did not return any valid response."):
-        self.code = code
+    def __init__(self, message="The request you've submitted did not return any valid response."):
         self.message = message
         super().__init__(self.message)
 
