@@ -22,7 +22,7 @@ class VectoClientException(VectoException):
         if 500 <= self.status_code <= 599:
             raise ServiceException()
 
-        # self.message = "Error! Received error code " + str(self.status_code)
+        self.message = "Error! Received error code " + str(self.status_code)
 
         super().__init__(self.message)
 
@@ -71,6 +71,12 @@ class UnpairedAnalogy(VectoException):
 
     def __str__(self):
         return f'{self.message}'
+
+class InvalidModality(VectoException):
+    pass
+    # def __init__(self, message="Ensure that you have used either IMAGE or TEXT as the modality."):
+    #     self.message = message
+    #     super().__init__(self.message)
 
 class LookupException(VectoException):
     pass

@@ -14,7 +14,7 @@
 
 import io
 from vecto import Vecto, vecto_toolbelt
-from vecto.exceptions import VectoException, ForbiddenException, UnpairedAnalogy
+from vecto.exceptions import VectoException, VectoClientException, LookupException, InvalidModality, ForbiddenException, UnpairedAnalogy
 from .test_util import DatabaseTwin, TestDataset
 import random
 import logging
@@ -438,35 +438,42 @@ class TestDelete:
         logger.info("Checking if values in 'data' is queen: " + str(isinstance(results[0].data, str)))
         # assert "Queen" in results[1].data # TODO: once the ingest is fixed, it should return the first result
 
-# @pytest.mark.exception
-# class TestExceptions:
+@pytest.mark.exception
+class TestExceptions:
 
-    # def test_invalid_vector_space(self):
+    def test_invalid_vector_space(self):
 
-    #     token = 0
-    #     vector_space_id = 0
+        token = 0
+        vector_space_id = 0
 
-    #     invalid_user_vecto = Vecto(token, vector_space_id)
+        invalid_user_vecto = Vecto(token, vector_space_id)
 
-    #     with pytest.raises(ForbiddenException) as e:
-    #         import pdb; pdb.set_trace()
-    #         lookup_response = invalid_user_vecto.lookup("BLUE", modality='TEXT', top_k=100)
+        with pytest.raises(LookupException) as e:
 
-    # Test ingesting multiple images with invalid source attribute into Vecto
-    # def test_ingest_image_with_invalid_source(self):
-    #     batch = TestDataset.get_image_dataset()[:5]
-    #     data = {'vector_space_id': user_vecto._client.vector_space_id, 'data': [], 'modality': 'IMAGE'}
-    #     files = []
-    #     for path in batch:
-    #         relative = "%s/%s" % (path.parent.name, path.name)
-    #         data['data'].append(json.dumps({'relative': relative, "_source": relative}))
-    #         files.append(open(path, 'rb'))
+            invalid_user_vecto.lookup("BLUE", modality='TEXT', top_k=100)
 
-    #     with pytest.raises(VectoException) as e:
-    #         logger.info(e)
-    #         response = user_vecto.ingest(data, files)
-    #         logger.info(response)
-    #         logger.info(e)
+    #Test ingesting multiple images with invalid source attribute into Vecto
+    def test_ingest_image_with_invalid_source(self):
 
-    #         for f in files:
-    #             f.close()
+        batch = TestDataset.get_image_dataset()[:5]
+        data = {'vector_space_id': user_vecto._client.vector_space_id, 'data': [], 'modality': 'IMAGE'}
+    
+        vecto_data = []
+        files = []
+        for path in batch:
+    
+            temp_data = {}
+
+            relative = "%s/%s" % (path.parent.name, path.name)
+            data['data'].append(json.dumps({'relative': relative, "_source": "file:/./%s" % relative}))
+            temp_data.update({'attributes': json.dumps({'relative': relative, "_source": "file:/./%s" % relative})})
+            temp_data.update({'data': open(path, 'rb')})
+
+        with pytest.raises(VectoClientException) as e:
+            logger.info(e)
+            response = user_vecto.ingest(vecto_data, 'IMAGES')
+            logger.info(response)
+            logger.info(e)
+
+            for f in files:
+                f.close()
