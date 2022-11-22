@@ -87,7 +87,7 @@ class Vecto():
 
     # Ingest
 
-    def ingest(self, data:dict, files:list, **kwargs) -> object:
+    def ingest(self, ingest_data, modality, **kwargs) -> object:
         """A function to ingest a batch of data into Vecto.
         Also works with single entry aka batch of 1.
 
@@ -99,8 +99,11 @@ class Vecto():
         Returns:
             client response
         """
+        files = [('input', ('_', r['data'], '_')) for r in ingest_data]
+        metadata = [json.dumps(r['attributes']) for r in ingest_data]
+        
+        data = {'vector_space_id': self._client.vector_space_id, 'data': metadata, 'modality': modality}
 
-        files = [('input', ('_', f, '_')) for f in files]
         response = self._client.post('/api/v0/index', data, files, kwargs)
 
         if not response.ok:

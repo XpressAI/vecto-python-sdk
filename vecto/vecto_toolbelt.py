@@ -2,7 +2,7 @@ import json
 import math
 from tqdm import tqdm
 
-def ingest_image(vs, batch_path_list:list, **kwargs) -> object:
+def ingest_image(vs, batch_path_list:list, metadata_list:list=None, **kwargs) -> object:
     """A function to ingest a batch of images into Vecto.
     Also works with single image aka batch of 1.
 
@@ -13,19 +13,17 @@ def ingest_image(vs, batch_path_list:list, **kwargs) -> object:
     Returns:
         tuple: A tuple of two dictionaries (client response body, client request body)
     """
-    data = {'vector_space_id': vs._client.vector_space_id, 'data': [], 'modality': 'IMAGE'}
-    files = []
-    for path in batch_path_list:
-        relative = "%s/%s" % (path.parent.name, path.name)
-        # relative = ""
-        data['data'].append(json.dumps(relative))
-        files.append(open(path, 'rb'))
 
-    
+    vecto_data = []
+        
+    for path, metadata in zip(batch_path_list, metadata_list):
 
-    response = vs.ingest(data, files)
-    for f in files:
-        f.close()
+        data = {'data': open(path, 'rb'), 
+                 'attributes': metadata}
+
+        vecto_data.append(data)
+
+    response = vs.ingest(vecto_data, "IMAGE")
     
     return response
 
@@ -36,7 +34,7 @@ def ingest_all_images(vs, path_list, batch_size=64):
         ingest_image(vs, batch)
 
 
-def ingest_text(vs, batch_index_list:list, batch_text_list:list, **kwargs) -> object:
+def ingest_text(vs, batch_text_list:list, metadata_list:list=None, **kwargs) -> object:
     """A function to ingest a batch of text into Vecto. 
     Also works with single text aka batch of 1.
 
@@ -47,12 +45,17 @@ def ingest_text(vs, batch_index_list:list, batch_text_list:list, **kwargs) -> ob
     Returns:
         tuple: A tuple of two dictionaries (client response body, client request body)
     """
-    data = {'vector_space_id': vs._client.vector_space_id, 'data': [], 'modality': 'TEXT'}
-    for index, text in zip(batch_index_list, batch_text_list):
-        data['data'].append(json.dumps('text_{}'.format(index) + '_{}'.format(text)))
-    # import pdb; pdb.set_trace()
 
-    response = vs.ingest(data, batch_text_list)
+    vecto_data = []
+
+    for text, metadata in zip(batch_text_list, metadata_list):
+
+        data = {'data': text, 
+                 'attributes': metadata}
+
+        vecto_data.append(data)
+
+    response = vs.ingest(vecto_data, "TEXT")
 
     return response
 
@@ -62,4 +65,3 @@ def ingest_all_text(path_list,text_list, batch_size=64):
     batches_text = [text_list[i * batch_size: (i + 1) * batch_size] for i in range(batch_count)]
     for batch,text in tqdm(zip(batches_path,batches_text), total = len(batches_path)):
         ingest_text(batch,text)
-

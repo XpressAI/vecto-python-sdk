@@ -139,7 +139,7 @@ class TestDataset:
         return data
 
     @classmethod
-    def get_text_metadata(cls, batch_index_list:list, batch_text_list:list) -> dict:
+    def get_text_metadata(cls, batch_text_list:list, batch_index_list:list) -> dict:
         """Computes the metadata that is done in ingest_text.
 
         Args: None
@@ -147,13 +147,10 @@ class TestDataset:
         Returns: 
             dict: the metadata
         """
-        data = {'vector_space_id': vector_space_id, 'data': [], 'modality': 'TEXT'}
-        files = []
-        for index, text in zip(batch_index_list, batch_text_list):
-            data['data'].append(json.dumps('text_{}'.format(index) + '_{}'.format(text)))
+        data = []
 
-        for f in files:
-            f.close()
+        for index, text in zip(batch_index_list, batch_text_list):
+            data.append('text_{}'.format(index) + '_{}'.format(text))
 
         return data
 
@@ -178,8 +175,9 @@ class DatabaseTwin:
 
         Returns: None
         """
-        for id, path in zip(results, metadata['data']):
-            self.ref_db.append([id, json.loads(path)])
+
+        for id, path in zip(results, metadata):
+            self.ref_db.append([id, path])
 
     def get_database(self) -> pd.DataFrame:
         """A function to get the latest database twin, 
