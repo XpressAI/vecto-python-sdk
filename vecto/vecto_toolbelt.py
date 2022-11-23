@@ -27,12 +27,14 @@ def ingest_image(vs, batch_path_list:list, metadata_list:list=None, **kwargs) ->
     
     return response
 
-def ingest_all_images(vs, path_list, batch_size=64):
-    batch_count = math.ceil(len(path_list) / batch_size)
-    batches = [path_list[i * batch_size: (i + 1) * batch_size] for i in range(batch_count)]
-    for batch in tqdm(batches):
-        ingest_image(vs, batch)
+def ingest_all_images(vs, path_list, metadata_list, batch_size=64):
 
+    batch_count = math.ceil(len(path_list) / batch_size)
+    path_batches = [path_list[i * batch_size: (i + 1) * batch_size] for i in range(batch_count)]
+    metadata_batches = [metadata_list[i * batch_size: (i + 1) * batch_size] for i in range(batch_count)]
+
+    for path_batch, metadata_batch in tqdm(zip(path_batches, metadata_batches), total = len(path_batches)):
+        ingest_image(vs, path_batch, metadata_batch)
 
 def ingest_text(vs, batch_text_list:list, metadata_list:list=None, **kwargs) -> object:
     """A function to ingest a batch of text into Vecto. 
@@ -59,9 +61,11 @@ def ingest_text(vs, batch_text_list:list, metadata_list:list=None, **kwargs) -> 
 
     return response
 
-def ingest_all_text(path_list,text_list, batch_size=64):
+def ingest_all_text(path_list:list, metadata_list:list, batch_size=64):
+
     batch_count = math.ceil(len(path_list) / batch_size)
     batches_path = [path_list[i * batch_size: (i + 1) * batch_size] for i in range(batch_count)]
-    batches_text = [text_list[i * batch_size: (i + 1) * batch_size] for i in range(batch_count)]
+    batches_text = [metadata_list[i * batch_size: (i + 1) * batch_size] for i in range(batch_count)]
+    
     for batch,text in tqdm(zip(batches_path,batches_text), total = len(batches_path)):
         ingest_text(batch,text)
