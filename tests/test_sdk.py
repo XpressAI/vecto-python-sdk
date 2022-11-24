@@ -408,11 +408,13 @@ class TestAnalogy:
     # Test getting an analogy from Vecto
     def test_compute_analogy(self): # can be text or images
         query = 'tests/demo_dataset/navy.txt'
-        analogy_from = 'tests/demo_dataset/blue.txt'
-        analogy_to = 'tests/demo_dataset/orange.txt'
+        analogy_from_to = {
+            'from': 'tests/demo_dataset/blue.txt',
+            'to': 'tests/demo_dataset/orange.txt'
+        }
         top_k = 10
         modality = 'TEXT'
-        response = user_vecto.compute_analogy(query, analogy_from, analogy_to, top_k, modality)
+        response = user_vecto.compute_analogy(query, analogy_from_to, top_k, modality)
         results = response.results
 
         # logger.info(response)
@@ -426,6 +428,7 @@ class TestAnalogy:
         assert isinstance(results[round(len(results) / 2)].id, int)
         logger.info("Checking if values in 'similarity' is float: " + str(isinstance(results[-1].similarity, float)))
         assert isinstance(results[-1].similarity, float)
+
 
 
     # Test creating an analogy on Vecto
@@ -480,26 +483,38 @@ class TestDelete:
         assert len(results) is (len(ref_db) - len(deleted_ids))
 
 
-    # # Test compute analogy from Vecto
+@pytest.mark.exception
+class TestExceptions:
+
+    # Test compute analogy from Vecto
     def test_compute_analogy_from_list(self): 
 
         user_vecto.delete_vector_space_entries()
         batch = TestDataset.get_profession_dataset()
         response = vecto_toolbelt.ingest_text(user_vecto, batch, batch)
+        results = response.ids
+        user_db_twin.update_database(results, batch)
+
         query = 'King'
         analogy_from = ['Male', 'Husband']
         analogy_to = ['Female', 'Wife']
+        
+        analogy_from_to = []
+        for analogy_from, analogy_to in zip(analogy_from, analogy_to):
+            analogy_from_to.append({
+            'from': analogy_from,
+            'to': analogy_to
+        })
+
         top_k = 20
         modality = 'TEXT'
-        response = user_vecto.compute_analogy(query, analogy_from, analogy_to, top_k, modality)
+        response = user_vecto.compute_analogy(query, analogy_from_to, top_k, modality)
         results = response.results
 
         logger.info("Checking if values in 'data' is queen: " + str(isinstance(results[0].data, str)))
         
         assert "Queen" in results[1].data # TODO: once the ingest is fixed, it should return the first result
 
-@pytest.mark.exception
-class TestExceptions:
 
     def test_invalid_vector_space(self):
 

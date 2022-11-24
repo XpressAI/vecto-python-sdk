@@ -211,7 +211,7 @@ class Vecto():
         return analogy_fields
 
 
-    def compute_analogy(self, query:IO, analogy_from:IO or list, analogy_to:IO or list, top_k:int, modality:str, **kwargs) -> object: # can be text or images
+    def compute_analogy(self, query:IO, analogy_from_to:dict or list, top_k:int, modality:str, **kwargs) -> object: # can be text or images
         """A function to compute an analogy using Vecto.
         It is also possible to do multiple analogies in one request body.
         The computed analogy is not stored in Vecto.
@@ -227,7 +227,13 @@ class Vecto():
             dict: Client response body
         """
 
-        
+        if not type(analogy_from_to) == list:
+            analogy_from_to = [analogy_from_to]
+
+        for analogy_data in analogy_from_to:
+            analogy_from = analogy_data['from']
+            analogy_to = analogy_data['to']
+
         init_analogy_fields = [('vector_space_id', str(self._client.vector_space_id)), ('top_k', str(top_k)), ('modality', modality)]
         analogy_fields = self.build_analogy_query(init_analogy_fields, query, analogy_from, analogy_to)
         
@@ -237,30 +243,24 @@ class Vecto():
 
         return LookupResponse(results=[LookupResult(**r) for r in response.json()['results']])
 
+    def compute_text_analogy(self, query:IO, analogy_from_to:dict or list, top_k:int, **kwargs) -> object: 
+        """A function to compute a text analogy using Vecto.
+        It is also possible to do multiple analogies in one request body.
+        The computed analogy is not stored in Vecto.
 
-    # def compute_text_analogy(self, query:str, analogy_from:str or list, analogy_to:str or list, top_k:int, **kwargs) -> object: # can be text or images
-        # """A function to compute a text analogy using Vecto.
-        # It is also possible to do multiple analogies in one request body.
-        # The computed analogy is not stored in Vecto.
+        Args:
+            query (str): Path to text file as query, e.g. orange
+            analogy_from (str): Path to text file as analogy from, e.g. ocean blue
+            analogy_to (str): Path to text file as analogy to, e.g. navy blue
+            top_k (int): The number of results to return
+            **kwargs: Other keyword arguments for clients other than `requests`
 
-        # Args:
-        #     query (str): Path to text file as query, e.g. orange
-        #     analogy_from (str): Path to text file as analogy from, e.g. ocean blue
-        #     analogy_to (str): Path to text file as analogy to, e.g. navy blue
-        #     top_k (int): The number of results to return
-        #     **kwargs: Other keyword arguments for clients other than `requests`
+        Returns:
+            dict: Client response body
+        """
+        response = self.compute_analogy(query, analogy_from_to, top_k, 'TEXT')
 
-        # Returns:
-        #     dict: Client response body
-        # """
-
-        # init_analogy_fields = [('vector_space_id', str(self._client.vector_space_id)), ('top_k', str(top_k)), ('modality', "TEXT")]
-        # analogy_fields = self.build_analogy_query(init_analogy_fields, query, analogy_from, analogy_to)
-        # data = MultipartEncoder(fields=analogy_fields)
-        
-        # response = self._client.post_form('/api/v0/analogy', data, kwargs)
-
-        # return response
+        return response
 
         #TODO: call the other compute analogy and pass text as modality
 
