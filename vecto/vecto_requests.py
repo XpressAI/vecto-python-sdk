@@ -211,7 +211,7 @@ class Vecto():
         return analogy_fields
 
 
-    def compute_analogy(self, query:IO, analogy_from_to:dict or list, top_k:int, modality:str, **kwargs) -> object: # can be text or images
+    def compute_analogy(self, query:IO, analogy_start_end:dict or list, top_k:int, modality:str, **kwargs) -> object: # can be text or images
         """A function to compute an analogy using Vecto.
         It is also possible to do multiple analogies in one request body.
         The computed analogy is not stored in Vecto.
@@ -227,12 +227,12 @@ class Vecto():
             dict: Client response body
         """
 
-        if not type(analogy_from_to) == list:
-            analogy_from_to = [analogy_from_to]
+        if not type(analogy_start_end) == list:
+            analogy_start_end = [analogy_start_end]
 
-        for analogy_data in analogy_from_to:
-            analogy_from = analogy_data['from']
-            analogy_to = analogy_data['to']
+        for analogy_data in analogy_start_end:
+            analogy_from = analogy_data['start']
+            analogy_to = analogy_data['end']
 
         init_analogy_fields = [('vector_space_id', str(self._client.vector_space_id)), ('top_k', str(top_k)), ('modality', modality)]
         analogy_fields = self.build_analogy_query(init_analogy_fields, query, analogy_from, analogy_to)
@@ -243,7 +243,7 @@ class Vecto():
 
         return LookupResponse(results=[LookupResult(**r) for r in response.json()['results']])
 
-    def compute_text_analogy(self, query:IO, analogy_from_to:dict or list, top_k:int, **kwargs) -> object: 
+    def compute_text_analogy(self, query:IO, analogy_start_end:dict or list, top_k:int, **kwargs) -> object: 
         """A function to compute a text analogy using Vecto.
         It is also possible to do multiple analogies in one request body.
         The computed analogy is not stored in Vecto.
@@ -258,7 +258,7 @@ class Vecto():
         Returns:
             dict: Client response body
         """
-        response = self.compute_analogy(query, analogy_from_to, top_k, 'TEXT')
+        response = self.compute_analogy(query, analogy_start_end, top_k, 'TEXT')
 
         return response
 

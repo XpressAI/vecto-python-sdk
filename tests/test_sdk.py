@@ -408,13 +408,13 @@ class TestAnalogy:
     # Test getting an analogy from Vecto
     def test_compute_analogy(self): # can be text or images
         query = 'tests/demo_dataset/navy.txt'
-        analogy_from_to = {
-            'from': 'tests/demo_dataset/blue.txt',
-            'to': 'tests/demo_dataset/orange.txt'
+        analogy_start_end = {
+            'start': 'tests/demo_dataset/blue.txt',
+            'end': 'tests/demo_dataset/orange.txt'
         }
         top_k = 10
         modality = 'TEXT'
-        response = user_vecto.compute_analogy(query, analogy_from_to, top_k, modality)
+        response = user_vecto.compute_analogy(query, analogy_start_end, top_k, modality)
         results = response.results
 
         # logger.info(response)
@@ -434,10 +434,10 @@ class TestAnalogy:
     # Test creating an analogy on Vecto
     # Create and delete analogy checks against each other - you need to create one first before you can delete
     def test_create_analogy(self):
-        analogy_from = 'tests/demo_dataset/blue.txt'
-        analogy_to = 'tests/demo_dataset/orange.txt'
+        analogy_start = 'tests/demo_dataset/blue.txt'
+        analogy_end = 'tests/demo_dataset/orange.txt'
         analogy_id = 1
-        user_vecto.create_analogy(analogy_id, analogy_from, analogy_to)
+        user_vecto.create_analogy(analogy_id, analogy_start, analogy_end)
 
     # Test deleting an analogy from Vecto
     def test_delete_analogy(self):
@@ -496,19 +496,19 @@ class TestExceptions:
         user_db_twin.update_database(results, batch)
 
         query = 'King'
-        analogy_from = ['Male', 'Husband']
-        analogy_to = ['Female', 'Wife']
+        analogy_start = ['Male', 'Husband']
+        analogy_end = ['Female', 'Wife']
         
-        analogy_from_to = []
-        for analogy_from, analogy_to in zip(analogy_from, analogy_to):
-            analogy_from_to.append({
-            'from': analogy_from,
-            'to': analogy_to
+        analogy_start_end = []
+        for start, end in zip(analogy_start, analogy_end):
+            analogy_start_end.append({
+            'start': start,
+            'end': end
         })
 
         top_k = 20
         modality = 'TEXT'
-        response = user_vecto.compute_analogy(query, analogy_from_to, top_k, modality)
+        response = user_vecto.compute_analogy(query, analogy_start_end, top_k, modality)
         results = response.results
 
         logger.info("Checking if values in 'data' is queen: " + str(isinstance(results[0].data, str)))
