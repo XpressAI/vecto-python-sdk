@@ -20,9 +20,17 @@ import os
 from requests_toolbelt import MultipartEncoder
 import json
 
-from typing import NamedTuple, List
-from .exceptions import VectoException, VectoClientException, UnpairedAnalogy, ForbiddenException, LookupException
+from typing import NamedTuple, List, IO
+from .exceptions import VectoException, UnauthorizedException, UnpairedAnalogy, ForbiddenException, NotFoundException, ServiceException
 
+class IngestResponse(NamedTuple):
+    ids: List[int]
+class LookupResult(NamedTuple):
+    data: object
+    id: int
+    similarity: float
+class LookupResponse(NamedTuple):
+    results: List[LookupResult]
 
 class Client:
     def __init__(self, token:str, vector_space_id:str or int, vecto_base_url: str, client) -> None:
@@ -39,7 +47,9 @@ class Client:
                                         files=files,
                                         headers=headers,
                                         **kwargs)
-
+        if not response.ok:
+            self.check_common_error(response.status_code)
+        
         return response
 
 
@@ -51,43 +61,43 @@ class Client:
                                 headers=headers,
                                 **kwargs)
 
+        if not response.ok:
+            self.check_common_error(response.status_code)
+
         return response
 
-class IngestResponse(NamedTuple):
-    ids: List[int]
-class LookupResult(NamedTuple):
-    data: object
-    id: int
-    similarity: float
 
-class LookupResponse(NamedTuple):
-    results: List[LookupResult]
+    def check_common_error(self, status_code: int):
+        if status_code == 400:
+            raise Exception("Requested data is incorrect, please check your request.")
+        elif status_code == 401:
+            raise UnauthorizedException()
+        elif status_code == 403:
+            raise ForbiddenException()
+        elif status_code == 404:
+            raise NotFoundException()
+        elif 500 <= status_code <= 599:
+            raise ServiceException()
+        else:
+            raise VectoException("Error status code ["+str(status_code)+"].")
 
 class Vecto():
 
-
-    def __init__(self, token:str=None, 
-                 vector_space_id:int or str=None, 
+    def __init__(self, token:str, 
+                 vector_space_id:int or str, 
                  vecto_base_url:str="https://api.vecto.ai", 
                  client=requests):
 
-        if (token or vector_space_id) is None:
+        if (token is None) or (vector_space_id is None):
 
-            try:
-                token = os.environ['user_token']
-                vector_space_id = os.environ['vector_space_id']
-                print("Loaded token and vector_space_id from environment.")
-            
-            #TODO: make this into an exception
-            except Exception as e:
-                print("Unable to find vector space credentials.")
-                print(e)
+            raise ValueError("Both token and vector space id are necessary.")
 
         self._client = Client(token, vector_space_id, vecto_base_url, client)
 
+
     # Ingest
 
-    def ingest(self, ingest_data, modality, **kwargs) -> object:
+    def ingest(self, ingest_data, modality:str, **kwargs) -> object:
         """A function to ingest a batch of data into Vecto.
         Also works with single entry aka batch of 1.
 
@@ -106,19 +116,16 @@ class Vecto():
 
         response = self._client.post('/api/v0/index', data, files, kwargs)
 
-        if not response.ok:
-            raise VectoClientException(response)
-
         return IngestResponse(response.json()['ids'])
 
 
     # Lookup
 
-    def lookup(self, f:str, modality:str, top_k:int, ids:list=None, **kwargs) -> object:
+    def lookup(self, query:IO, modality:str, top_k:int, ids:list=None, **kwargs) -> object:
         """A function to search on Vecto, based on the lookup item.
 
         Args:
-            f (str): A string of either image path or text to search on
+            query (str): A string of either image path or text to search on
             modality (str): The type of the file - "IMAGE" or "TEXT"
             top_k (int): The number of results to return
             ids (list): A list of vector ids to search on aka subset of vectors, defaults to None
@@ -130,14 +137,10 @@ class Vecto():
         """
 
         data={'vector_space_id': self._client.vector_space_id, 'modality': modality, 'top_k': top_k, 'ids': ids}
-        files={'query': f}
+        files={'query': query}
         response = self._client.post('/api/v0/lookup', data, files, kwargs)
-
-        if response.ok != True:
-            raise LookupException(response)
             
-        else:
-            return LookupResponse(results=[LookupResult(**r) for r in response.json()['results']])
+        return LookupResponse(results=[LookupResult(**r) for r in response.json()['results']])
 
 
     # Update
@@ -192,19 +195,12 @@ class Vecto():
 
         response = self._client.post_form('/api/v0/update/metadata', data, kwargs)
 
-        if response.ok != True:
-            raise VectoClientException(response)
-
 
     # Analogy
 
     @classmethod
     def multipartencoder_query_builder(self, query_category, query_string):
 
-        if query_string is os.path.exists:
-            return [(query_category, ('_', open(query_string, 'rb')))]
-
-        else:
             return [(query_category, ('_', query_string))]
 
     @classmethod
@@ -224,7 +220,7 @@ class Vecto():
         return analogy_fields
 
 
-    def compute_analogy(self, query:str, analogy_from:str or list, analogy_to:str or list, top_k:int, modality:str="TEXT", **kwargs) -> object: # can be text or images
+    def compute_analogy(self, query:IO, analogy_from:IO or list, analogy_to:IO or list, top_k:int, modality:str, **kwargs) -> object: # can be text or images
         """A function to compute an analogy using Vecto.
         It is also possible to do multiple analogies in one request body.
         The computed analogy is not stored in Vecto.
@@ -251,30 +247,31 @@ class Vecto():
         return LookupResponse(results=[LookupResult(**r) for r in response.json()['results']])
 
 
-    def compute_text_analogy(self, query:str, analogy_from:str or list, analogy_to:str or list, top_k:int, **kwargs) -> object: # can be text or images
-        """A function to compute a text analogy using Vecto.
-        It is also possible to do multiple analogies in one request body.
-        The computed analogy is not stored in Vecto.
+    # def compute_text_analogy(self, query:str, analogy_from:str or list, analogy_to:str or list, top_k:int, **kwargs) -> object: # can be text or images
+        # """A function to compute a text analogy using Vecto.
+        # It is also possible to do multiple analogies in one request body.
+        # The computed analogy is not stored in Vecto.
 
-        Args:
-            query (str): Path to text file as query, e.g. orange
-            analogy_from (str): Path to text file as analogy from, e.g. ocean blue
-            analogy_to (str): Path to text file as analogy to, e.g. navy blue
-            top_k (int): The number of results to return
-            **kwargs: Other keyword arguments for clients other than `requests`
+        # Args:
+        #     query (str): Path to text file as query, e.g. orange
+        #     analogy_from (str): Path to text file as analogy from, e.g. ocean blue
+        #     analogy_to (str): Path to text file as analogy to, e.g. navy blue
+        #     top_k (int): The number of results to return
+        #     **kwargs: Other keyword arguments for clients other than `requests`
 
-        Returns:
-            dict: Client response body
-        """
+        # Returns:
+        #     dict: Client response body
+        # """
 
-        init_analogy_fields = [('vector_space_id', str(self._client.vector_space_id)), ('top_k', str(top_k)), ('modality', "TEXT")]
-        analogy_fields = self.build_analogy_query(init_analogy_fields, query, analogy_from, analogy_to)
-        data = MultipartEncoder(fields=analogy_fields)
+        # init_analogy_fields = [('vector_space_id', str(self._client.vector_space_id)), ('top_k', str(top_k)), ('modality', "TEXT")]
+        # analogy_fields = self.build_analogy_query(init_analogy_fields, query, analogy_from, analogy_to)
+        # data = MultipartEncoder(fields=analogy_fields)
         
-        response = self._client.post_form('/api/v0/analogy', data, kwargs)
+        # response = self._client.post_form('/api/v0/analogy', data, kwargs)
 
-        return response
+        # return response
 
+        #TODO: call the other compute analogy and pass text as modality
 
     def create_analogy(self, analogy_id:int, analogy_from:str, analogy_to:str, **kwargs) -> object:
         """A function to create an analogy and store in Vecto.
@@ -298,8 +295,6 @@ class Vecto():
 
         response = self._client.post_form('/api/v0/analogy/create', data, kwargs)
 
-        if response.ok != True:
-            raise VectoClientException(response)
 
     def delete_analogy(self, analogy_id:int, **kwargs) -> object:
         """A function to delete an analogy that is stored in Vecto.
@@ -313,10 +308,6 @@ class Vecto():
         """
         data = MultipartEncoder(fields={'vector_space_id': str(self._client.vector_space_id), 'analogy_id': str(analogy_id)})
         response = self._client.post_form('/api/v0/analogy/delete', data, kwargs)
-
-        if response.ok != True:
-            raise VectoClientException(response)
-
 
     # Delete
 
@@ -334,8 +325,6 @@ class Vecto():
         data = MultipartEncoder(fields=[('vector_space_id', str(self._client.vector_space_id))] + [('id', str(id)) for id in vector_ids])
         response = self._client.post_form('/api/v0/delete', data, kwargs)
         
-        if response.ok != True:
-            raise VectoClientException(response)
 
     def delete_vector_space_entries(self, **kwargs) -> object:
         """A function to delete the current vector space in Vecto. 
@@ -350,6 +339,3 @@ class Vecto():
 
         data = MultipartEncoder({'vector_space_id': str(self._client.vector_space_id)})
         response = self._client.post_form('/api/v0/delete_all', data, kwargs)
-
-        if response.ok != True:
-            raise VectoClientException(response)

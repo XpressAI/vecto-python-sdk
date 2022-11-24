@@ -1,6 +1,7 @@
 import json
 import math
 from tqdm import tqdm
+import io
 
 def ingest_image(vs, batch_path_list:list, metadata_list:list=None, **kwargs) -> object:
     """A function to ingest a batch of images into Vecto.
@@ -25,6 +26,9 @@ def ingest_image(vs, batch_path_list:list, metadata_list:list=None, **kwargs) ->
 
     response = vs.ingest(vecto_data, "IMAGE")
     
+    for data in vecto_data:
+        data['data'].close()
+
     return response
 
 def ingest_all_images(vs, path_list, metadata_list, batch_size=64):
@@ -35,6 +39,7 @@ def ingest_all_images(vs, path_list, metadata_list, batch_size=64):
 
     for path_batch, metadata_batch in tqdm(zip(path_batches, metadata_batches), total = len(path_batches)):
         ingest_image(vs, path_batch, metadata_batch)
+
 
 def ingest_text(vs, batch_text_list:list, metadata_list:list=None, **kwargs) -> object:
     """A function to ingest a batch of text into Vecto. 
@@ -49,10 +54,10 @@ def ingest_text(vs, batch_text_list:list, metadata_list:list=None, **kwargs) -> 
     """
 
     vecto_data = []
-
+    
     for text, metadata in zip(batch_text_list, metadata_list):
 
-        data = {'data': text, 
+        data = {'data': io.StringIO(text),
                  'attributes': metadata}
 
         vecto_data.append(data)

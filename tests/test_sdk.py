@@ -14,7 +14,7 @@
 
 import io
 from vecto import Vecto, vecto_toolbelt
-from vecto.exceptions import VectoException, VectoClientException, LookupException, InvalidModality, ForbiddenException, UnpairedAnalogy
+from vecto.exceptions import VectoException, ForbiddenException
 from .test_util import DatabaseTwin, TestDataset
 import random
 import logging
@@ -353,7 +353,8 @@ class TestAnalogy:
         analogy_from = 'tests/demo_dataset/blue.txt'
         analogy_to = 'tests/demo_dataset/orange.txt'
         top_k = 10
-        response = user_vecto.compute_analogy(query, analogy_from, analogy_to, top_k)
+        modality = 'TEXT'
+        response = user_vecto.compute_analogy(query, analogy_from, analogy_to, top_k, modality)
         results = response.results
 
         # logger.info(response)
@@ -426,17 +427,18 @@ class TestDelete:
 
         user_vecto.delete_vector_space_entries()
         batch = TestDataset.get_profession_dataset()
-        response = vecto_toolbelt.ingest_text(user_vecto, range(0, len(batch)), batch)
-
-        query = "King"
-        analogy_from = ["Male", "Husband"]
-        analogy_to = ["Female", "Wife"]
-        top_k = 5
-        response = user_vecto.compute_analogy(query, analogy_from, analogy_to, top_k)
+        response = vecto_toolbelt.ingest_text(user_vecto, batch, batch)
+        query = 'King'
+        analogy_from = ['Male', 'Husband']
+        analogy_to = ['Female', 'Wife']
+        top_k = 20
+        modality = 'TEXT'
+        response = user_vecto.compute_analogy(query, analogy_from, analogy_to, top_k, modality)
         results = response.results
 
         logger.info("Checking if values in 'data' is queen: " + str(isinstance(results[0].data, str)))
-        # assert "Queen" in results[1].data # TODO: once the ingest is fixed, it should return the first result
+        
+        assert "Queen" in results[1].data # TODO: once the ingest is fixed, it should return the first result
 
 @pytest.mark.exception
 class TestExceptions:
@@ -448,7 +450,7 @@ class TestExceptions:
 
         invalid_user_vecto = Vecto(token, vector_space_id)
 
-        with pytest.raises(LookupException) as e:
+        with pytest.raises(ForbiddenException) as e:
 
             invalid_user_vecto.lookup("BLUE", modality='TEXT', top_k=100)
 
@@ -469,7 +471,7 @@ class TestExceptions:
             temp_data.update({'attributes': json.dumps({'relative': relative, "_source": "file:/./%s" % relative})})
             temp_data.update({'data': open(path, 'rb')})
 
-        with pytest.raises(VectoClientException) as e:
+        with pytest.raises(VectoException) as e:
             logger.info(e)
             response = user_vecto.ingest(vecto_data, 'IMAGES')
             logger.info(response)
