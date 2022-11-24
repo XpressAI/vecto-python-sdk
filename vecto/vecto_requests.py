@@ -69,7 +69,7 @@ class Client:
 
     def check_common_error(self, status_code: int):
         if status_code == 400:
-            raise Exception("Requested data is incorrect, please check your request.")
+            raise VectoException("Requested data is incorrect, please check your request.")
         elif status_code == 401:
             raise UnauthorizedException()
         elif status_code == 403:
@@ -145,7 +145,7 @@ class Vecto():
 
     # Update
 
-    def update_vector_embeddings(self, vector_id, batch:list, modality:str, **kwargs) -> object:
+    def update_vector_embeddings(self, embedding_data, modality:str, **kwargs) -> object:
         """A function to update current vector embeddings with new one.
 
         Args:
@@ -157,28 +157,15 @@ class Vecto():
             dict: Client response body
         """
 
-        files = []
-        if modality == 'TEXT':
-            for string in batch:
-                files.append(io.StringIO(string))
-        elif modality == 'IMAGE':
-            for file in batch:
-                files.append(open(file, 'rb'))
+        files = [('input', ('_', r['data'], '_')) for r in embedding_data]
+        vector_id = [(r['ids']) for r in embedding_data]
 
-        #TODO Probably add vector_space_id to default call
         data={'vector_space_id': self._client.vector_space_id, 'id': vector_id, 'modality': modality}
-
-        #TODO probably make this into a wrapper call
-        temp_files=[('input', ('_', f, '_')) for f in files]
-        response = self._client.post('/api/v0/update/vectors', data, temp_files, kwargs)
-
-        if modality == 'IMAGE':
-            for f in files:
-                f.close()
+        response = self._client.post('/api/v0/update/vectors', data, files, kwargs) 
 
         return response
 
-    def update_vector_metadata(self, vector_ids:list, new_metadata:list, **kwargs) -> object:
+    def update_vector_metadata(self, update_metadata, **kwargs) -> object:
         """A function to update current vector metadata with new one.
 
         Args:
@@ -189,9 +176,13 @@ class Vecto():
         Returns:
             dict: Client response body
         """
+
+        new_metadata = [( r['attribute']) for r in update_metadata]
+        vector_ids = [(r['ids']) for r in update_metadata]
+
         data = MultipartEncoder(fields=[('vector_space_id', str(self._client.vector_space_id))] + 
                                             [('id', str(id)) for id in vector_ids] + 
-                                            [('metadata', json.dumps(md)) for md in new_metadata])
+                                            [('metadata', md) for md in new_metadata])
 
         response = self._client.post_form('/api/v0/update/metadata', data, kwargs)
 

@@ -256,32 +256,81 @@ class TestUpdating:
     # Test updating a vector embedding using text on Vecto
     def test_update_single_text_vector_embedding(self):
         text = TestDataset.get_random_text(TestDataset.get_color_dataset)
-        vector_id = random.sample(range(len(text)), len(text))
-        user_vecto.update_vector_embeddings(vector_id, text, modality='TEXT')
+        vector_ids = random.sample(range(len(text)), len(text))
+        
+        updated_vector = []
+        
+        for file, vector_id in zip(text, vector_ids):
+            updated_vector.append({
+            'data': io.StringIO(file),
+            'ids': vector_id
+        })
+
+        user_vecto.update_vector_embeddings(updated_vector, modality='TEXT')
 
     # Test updating a vector embedding using image on Vecto
     def test_update_single_image_vector_embedding(self):
         image = TestDataset.get_random_image()
-        vector_id = random.sample(range(len(image)), len(image))
-        user_vecto.update_vector_embeddings(vector_id, image, modality='IMAGE')
+        vector_ids = random.sample(range(len(image)), len(image))
+
+        updated_vector = []
+        
+        for file, vector_id in zip(image, vector_ids):
+            updated_vector.append({
+            'data': open(file, 'rb'),
+            'ids': vector_id
+        })
+
+        user_vecto.update_vector_embeddings(updated_vector, modality='IMAGE')
+        
+        for file in updated_vector:
+            file['data'].close()
 
     # Test updating multiple vector embeddings using text on Vecto
     def test_update_batch_text_vector_embedding(self):
         text = TestDataset.get_color_dataset()[:5]
-        vector_id = random.sample(range(len(text)), len(text))
-        user_vecto.update_vector_embeddings(vector_id, text, modality='TEXT')
+        vector_ids = random.sample(range(len(text)), len(text))
+
+        updated_vector = []
+        
+        for file, vector_id in zip(text, vector_ids):
+            updated_vector.append({
+            'data': io.StringIO(file),
+            'ids': vector_id
+        })
+
+        user_vecto.update_vector_embeddings(updated_vector, modality='TEXT')
+
 
     # Test updating multiple vector embeddings using image on Vecto
     def test_update_batch_image_vector_embedding(self):
         image = TestDataset.get_image_dataset()[:5]
-        vector_id = random.sample(range(len(image)), len(image))
-        user_vecto.update_vector_embeddings(vector_id, image, modality='IMAGE')
+        vector_ids = random.sample(range(len(image)), len(image))
+
+        updated_vector = []
+        
+        for file, vector_id in zip(image, vector_ids):
+            updated_vector.append({
+            'data': open(file, 'rb'),
+            'ids': vector_id
+        })
+
+        user_vecto.update_vector_embeddings(updated_vector, modality='IMAGE')
+        
+        for file in updated_vector:
+            file['data'].close()
 
     # Test updating metadata of a vector embedding on Vecto
     def test_update_single_vector_metadata(self):
         vector_id = random.randrange(0, 10)
         new_metadata = 'new_metadata'
-        user_vecto.update_vector_metadata([vector_id], [new_metadata])
+
+        updated_metadata = [{
+            'attribute': json.dumps(new_metadata),
+            'ids': vector_id
+        }]
+
+        user_vecto.update_vector_metadata(updated_metadata)
         ref_db = user_db_twin.get_database()
 
         # Just a dummy lookup to return the specified ID - check specific entry
@@ -313,7 +362,16 @@ class TestUpdating:
         batch_len = 3
         vector_ids = random.sample(range(10), batch_len)
         new_metadata = ['new_metadata_{}'.format(i) for i in range(batch_len)]
-        user_vecto.update_vector_metadata(vector_ids, new_metadata)
+
+        updated_metadata = []
+        
+        for metadata, vector_id in zip(new_metadata, vector_ids):
+            updated_metadata.append({
+            'attribute': json.dumps(metadata),
+            'ids': vector_id
+        })
+
+        user_vecto.update_vector_metadata(updated_metadata)
         ref_db = user_db_twin.get_database()
         
         # Just a dummy lookup to return all the data in the vector space - check other entries
