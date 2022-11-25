@@ -21,7 +21,7 @@ from requests_toolbelt import MultipartEncoder
 import json
 
 from typing import NamedTuple, List, IO
-from .exceptions import VectoException, UnauthorizedException, UnpairedAnalogy, ForbiddenException, NotFoundException, ServiceException
+from .exceptions import VectoException, UnauthorizedException, UnpairedAnalogy, ForbiddenException, NotFoundException, ServiceException, InvalidModality
 
 class IngestResponse(NamedTuple):
     ids: List[int]
@@ -69,7 +69,7 @@ class Client:
 
     def check_common_error(self, status_code: int):
         if status_code == 400:
-            raise VectoException("Requested data is incorrect, please check your request.")
+            raise VectoException("Submitted data is incorrect, please check your request.")
         elif status_code == 401:
             raise UnauthorizedException()
         elif status_code == 403:
@@ -97,18 +97,31 @@ class Vecto():
 
     # Ingest
 
-    def ingest(self, ingest_data, modality:str, **kwargs) -> object:
-        """A function to ingest a batch of data into Vecto.
-        Also works with single entry aka batch of 1.
-
-        Args:
-            data (dict): Dictionary containing regular fields
-            files (list): List of file-like objects to be ingested
+    def ingest(self, ingest_data: dict or list, modality:str, **kwargs) -> IngestResponse:
+        """A function to ingest data into Vecto. 
+            
+        Args:    
+            ingest_data (dict or list): Ingest data must follow the ingest data format: 
+                {
+                    'data': data, 
+                    'attributes': metadata
+                }
+                Where data should be an IO file-like object.
+                You can use open(path, 'rb') for IMAGE queries and io.StringIO(text) for TEXT queries.
+            modality (str): 'IMAGE' or 'TEXT'
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
-            client response
+            IngestResponse: named tuple that contains the list of index of ingested objects.
+                IngestResponse(NamedTuple):
+                    ids: List[int]
         """
+        if type(ingest_data) != list:
+            ingest_data = [ingest_data]
+
+        if modality != 'IMAGE' and modality != 'TEXT':
+            raise InvalidModality()
+
         files = [('input', ('_', r['data'], '_')) for r in ingest_data]
         metadata = [json.dumps(r['attributes']) for r in ingest_data]
         
@@ -121,20 +134,30 @@ class Vecto():
 
     # Lookup
 
-    def lookup(self, query:IO, modality:str, top_k:int, ids:list=None, **kwargs) -> object:
+    def lookup(self, query:IO, modality:str, top_k:int, ids:list=None, **kwargs) -> LookupResponse:
         """A function to search on Vecto, based on the lookup item.
 
         Args:
-            query (str): A string of either image path or text to search on
+            query (IO): A IO file-like object. 
+                        You can use open(path, 'rb') for IMAGE queries and io.StringIO(text) for TEXT queries.
+
             modality (str): The type of the file - "IMAGE" or "TEXT"
             top_k (int): The number of results to return
             ids (list): A list of vector ids to search on aka subset of vectors, defaults to None
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
-            dict: Client response body
+            LookupResponse: named tuple that contains a list of LookupResult named tuples.
+                results: List[LookupResult]
             
+            where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+                data: object
+                id: int
+                similarity: float
         """
+
+        if modality != 'IMAGE' and modality != 'TEXT':
+            raise InvalidModality()
 
         data={'vector_space_id': self._client.vector_space_id, 'modality': modality, 'top_k': top_k, 'ids': ids}
         files={'query': query}
@@ -145,11 +168,17 @@ class Vecto():
 
     # Update
 
-    def update_vector_embeddings(self, embedding_data, modality:str, **kwargs) -> object:
+    def update_vector_embeddings(self, embedding_data: dict or list, modality:str, **kwargs) -> object:
         """A function to update current vector embeddings with new one.
 
         Args:
-            batch (list): A list of image paths or texts
+            embedding_data (dict or list): dict or a list dicts that contains the embedding data to be updated. 
+            It must have the following keys: 
+                {
+                    'data': data, 
+                    'id': ids
+                }
+
             modality (str): The type of the file - "IMAGE" or "TEXT"
             **kwargs: Other keyword arguments for clients other than `requests`
 
@@ -157,34 +186,50 @@ class Vecto():
             dict: Client response body
         """
 
+        if type(embedding_data) != list:
+            embedding_data = [embedding_data]
+
+        if modality != 'IMAGE' and modality != 'TEXT':
+            raise InvalidModality()
+
         files = [('input', ('_', r['data'], '_')) for r in embedding_data]
-        vector_id = [(r['ids']) for r in embedding_data]
+        vector_id = [(r['id']) for r in embedding_data]
 
         data={'vector_space_id': self._client.vector_space_id, 'id': vector_id, 'modality': modality}
         response = self._client.post('/api/v0/update/vectors', data, files, kwargs) 
 
         return response
 
-    def update_vector_metadata(self, update_metadata, **kwargs) -> object:
+
+    def update_vector_metadata(self, update_metadata: dict or list, **kwargs) -> object:
         """A function to update current vector metadata with new one.
 
         Args:
-            vector_ids (list): A list of vector ids to update
-            new_metadata (list): A list of new metadata (str) to replace the old metadata
+            update_metadata (dict or list) : metadata to be updated. It must follow the format: 
+                {
+                    'attribute': metadata, 
+                    'id': id
+                }
+
+                where: 
+                    'attribute`: metadata to update
+                    'id': vector id to update
+
             **kwargs: Other keyword arguments for clients other than `requests`
 
-        Returns:
-            dict: Client response body
         """
 
+        if type(update_metadata) != list:
+            update_metadata = [update_metadata]
+
         new_metadata = [( r['attribute']) for r in update_metadata]
-        vector_ids = [(r['ids']) for r in update_metadata]
+        vector_ids = [(r['id']) for r in update_metadata]
 
         data = MultipartEncoder(fields=[('vector_space_id', str(self._client.vector_space_id))] + 
                                             [('id', str(id)) for id in vector_ids] + 
                                             [('metadata', md) for md in new_metadata])
 
-        response = self._client.post_form('/api/v0/update/metadata', data, kwargs)
+        self._client.post_form('/api/v0/update/metadata', data, kwargs)
 
 
     # Analogy
@@ -211,20 +256,40 @@ class Vecto():
         return analogy_fields
 
 
-    def compute_analogy(self, query:IO, analogy_start_end:dict or list, top_k:int, modality:str, **kwargs) -> object: # can be text or images
+    def compute_analogy(self, query:IO, analogy_start_end:dict or list, top_k:int, modality:str, **kwargs) -> LookupResponse: # can be text or images
         """A function to compute an analogy using Vecto.
         It is also possible to do multiple analogies in one request body.
         The computed analogy is not stored in Vecto.
 
         Args:
-            query (str): Path to text file as query, e.g. orange
-            analogy_from (str): Path to text file as analogy from, e.g. ocean blue
-            analogy_to (str): Path to text file as analogy to, e.g. navy blue
+            query (IO): query in the form of an IO object query.
+            analogy_start_end (dict or list): start and end analogy to be computed. 
+            It must follow the format: 
+                
+                {
+                    'start': analogy_start, 
+                    'end': analogy_end
+                }
+
+                where: 
+
+                    'start`: the starting point of the analogy
+                    'end': the ending point of the analogy
+
+                You can use open(path, 'rb') for IMAGE queries and io.StringIO(text) for TEXT queries.
+
             top_k (int): The number of results to return
+            modality (str): The type of the file, 'IMAGE' or 'TEXT'
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
-            dict: Client response body
+            LookupResponse: named tuple that contains a list of LookupResult named tuples.
+                results: List[LookupResult]
+            
+            where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+                data: object
+                id: int
+                similarity: float
         """
 
         if not type(analogy_start_end) == list:
@@ -243,26 +308,45 @@ class Vecto():
 
         return LookupResponse(results=[LookupResult(**r) for r in response.json()['results']])
 
-    def compute_text_analogy(self, query:IO, analogy_start_end:dict or list, top_k:int, **kwargs) -> object: 
-        """A function to compute a text analogy using Vecto.
+
+    def compute_text_analogy(self, query:IO, analogy_start_end:dict or list, top_k:int, **kwargs) -> LookupResponse: 
+        """A function to compute an Text analogy using Vecto.
         It is also possible to do multiple analogies in one request body.
         The computed analogy is not stored in Vecto.
 
         Args:
-            query (str): Path to text file as query, e.g. orange
-            analogy_from (str): Path to text file as analogy from, e.g. ocean blue
-            analogy_to (str): Path to text file as analogy to, e.g. navy blue
+            query (IO): query in the form of an IO object query.
+            analogy_start_end (dict or list): start and end analogy to be computed. 
+            It must follow the format: 
+                
+                {
+                    'start': analogy_start, 
+                    'end': analogy_end
+                }
+
+                where: 
+
+                    'start`: the starting point of the analogy
+                    'end': the ending point of the analogy
+
+                Use io.StringIO(text) for TEXT queries.
+
             top_k (int): The number of results to return
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
-            dict: Client response body
+            LookupResponse: named tuple that contains a list of LookupResult named tuples.
+                results: List[LookupResult]
+            
+            where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+                data: object
+                id: int
+                similarity: float
         """
+
         response = self.compute_analogy(query, analogy_start_end, top_k, 'TEXT')
 
         return response
-
-        #TODO: call the other compute analogy and pass text as modality
 
     def create_analogy(self, analogy_id:int, analogy_from:str, analogy_to:str, **kwargs) -> object:
         """A function to create an analogy and store in Vecto.
@@ -284,7 +368,7 @@ class Vecto():
             ('to', ('_', open(analogy_to, 'rb'))), 
         ])
 
-        response = self._client.post_form('/api/v0/analogy/create', data, kwargs)
+        self._client.post_form('/api/v0/analogy/create', data, kwargs)
 
 
     def delete_analogy(self, analogy_id:int, **kwargs) -> object:
@@ -298,7 +382,7 @@ class Vecto():
             dict: Client response body
         """
         data = MultipartEncoder(fields={'vector_space_id': str(self._client.vector_space_id), 'analogy_id': str(analogy_id)})
-        response = self._client.post_form('/api/v0/analogy/delete', data, kwargs)
+        self._client.post_form('/api/v0/analogy/delete', data, kwargs)
 
     # Delete
 
@@ -329,4 +413,4 @@ class Vecto():
         """
 
         data = MultipartEncoder({'vector_space_id': str(self._client.vector_space_id)})
-        response = self._client.post_form('/api/v0/delete_all', data, kwargs)
+        self._client.post_form('/api/v0/delete_all', data, kwargs)

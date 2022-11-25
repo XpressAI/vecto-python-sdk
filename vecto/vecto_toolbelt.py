@@ -41,7 +41,7 @@ def ingest_all_images(vs, path_list, metadata_list, batch_size=64):
         ingest_image(vs, path_batch, metadata_batch)
 
 
-def ingest_text(vs, batch_text_list:list, metadata_list:list=None, **kwargs) -> object:
+def ingest_text(vs, batch_text_list:list, metadata_list:list, **kwargs) -> object:
     """A function to ingest a batch of text into Vecto. 
     Also works with single text aka batch of 1.
 
@@ -57,7 +57,7 @@ def ingest_text(vs, batch_text_list:list, metadata_list:list=None, **kwargs) -> 
     
     for text, metadata in zip(batch_text_list, metadata_list):
 
-        data = {'data': io.StringIO(text),
+        data = {'data': io.StringIO(str(text)),
                  'attributes': metadata}
 
         vecto_data.append(data)

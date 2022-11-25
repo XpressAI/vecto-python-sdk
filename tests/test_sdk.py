@@ -263,7 +263,7 @@ class TestUpdating:
         for file, vector_id in zip(text, vector_ids):
             updated_vector.append({
             'data': io.StringIO(file),
-            'ids': vector_id
+            'id': vector_id
         })
 
         user_vecto.update_vector_embeddings(updated_vector, modality='TEXT')
@@ -278,7 +278,7 @@ class TestUpdating:
         for file, vector_id in zip(image, vector_ids):
             updated_vector.append({
             'data': open(file, 'rb'),
-            'ids': vector_id
+            'id': vector_id
         })
 
         user_vecto.update_vector_embeddings(updated_vector, modality='IMAGE')
@@ -296,7 +296,7 @@ class TestUpdating:
         for file, vector_id in zip(text, vector_ids):
             updated_vector.append({
             'data': io.StringIO(file),
-            'ids': vector_id
+            'id': vector_id
         })
 
         user_vecto.update_vector_embeddings(updated_vector, modality='TEXT')
@@ -312,7 +312,7 @@ class TestUpdating:
         for file, vector_id in zip(image, vector_ids):
             updated_vector.append({
             'data': open(file, 'rb'),
-            'ids': vector_id
+            'id': vector_id
         })
 
         user_vecto.update_vector_embeddings(updated_vector, modality='IMAGE')
@@ -327,7 +327,7 @@ class TestUpdating:
 
         updated_metadata = [{
             'attribute': json.dumps(new_metadata),
-            'ids': vector_id
+            'id': vector_id
         }]
 
         user_vecto.update_vector_metadata(updated_metadata)
@@ -368,7 +368,7 @@ class TestUpdating:
         for metadata, vector_id in zip(new_metadata, vector_ids):
             updated_metadata.append({
             'attribute': json.dumps(metadata),
-            'ids': vector_id
+            'id': vector_id
         })
 
         user_vecto.update_vector_metadata(updated_metadata)
