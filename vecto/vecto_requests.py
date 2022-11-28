@@ -18,7 +18,9 @@ from requests_toolbelt import MultipartEncoder
 import json
 
 from typing import NamedTuple, List, IO
-from .exceptions import VectoException, UnauthorizedException, UnpairedAnalogy, ForbiddenException, NotFoundException, ServiceException, InvalidModality
+from .exceptions import ( VectoException, UnauthorizedException, UnpairedAnalogy, 
+                        ForbiddenException, NotFoundException, ServiceException, 
+                        InvalidModality, ConsumedResourceException )
 
 
 class IngestResponse(NamedTuple):
@@ -50,7 +52,7 @@ class Client:
                                         headers=headers,
                                         **kwargs)
         if not response.ok:
-            self.check_common_error(response.status_code)
+            self.check_common_error(response.status_code, url=url, data=data, files=files, headers=headers)
         
         return response
 
@@ -64,12 +66,13 @@ class Client:
                                 **kwargs)
 
         if not response.ok:
-            self.check_common_error(response.status_code)
+            self.check_common_error(response.status_code, url=url, data=data, headers=headers)
 
         return response
 
 
-    def check_common_error(self, status_code: int):
+    def check_common_error(self, status_code: int, url=None, data=None, files=None, headers=None):
+
         if status_code == 400:
             raise VectoException("Submitted data is incorrect, please check your request.")
         elif status_code == 401:
@@ -79,9 +82,18 @@ class Client:
         elif status_code == 404:
             raise NotFoundException()
         elif 500 <= status_code <= 599:
+            self.check_io_buffer(files)
             raise ServiceException()
         else:
             raise VectoException("Error status code ["+str(status_code)+"].")
+
+
+    def check_io_buffer(self, files):
+        '''Currently ingest files are formatted as:
+        [('input', ('_', <_io.BufferedReader name='file.png'>, '_'))]
+        '''
+        if files[0][1][1].peek() == b'':
+            raise ConsumedResourceException()
 
 class Vecto():
 

@@ -49,6 +49,16 @@ class InvalidModality(VectoException):
 
     def __str__(self):
         return f'{self.message}'
-
+        
 class LookupException(VectoException):
     pass
+
+class ConsumedResourceException(VectoException):
+    def __init__(self, message="The data that you have sent is empty. \
+                                If you are resending ingested data in a notebook, \
+                                please rerun the cell that defines the data."):
+        self.message = message
+        super().__init__(self.message)
+
+    def __str__(self):
+        return f'{self.message}'
