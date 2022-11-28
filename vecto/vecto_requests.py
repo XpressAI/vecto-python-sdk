@@ -344,7 +344,7 @@ class Vecto():
 
 
     def compute_text_analogy(self, query:IO, analogy_start_end:dict or list, top_k:int, **kwargs) -> LookupResponse: 
-        """A function to compute an Text analogy using Vecto.
+        """A function to compute a Text analogy using Vecto.
         It is also possible to do multiple analogies in one request body.
         The computed analogy is not stored in Vecto.
 
@@ -379,6 +379,45 @@ class Vecto():
         """
 
         response = self.compute_analogy(query, analogy_start_end, top_k, 'TEXT')
+
+        return response
+
+    def compute_image_analogy(self, query:IO, analogy_start_end:dict or list, top_k:int, **kwargs) -> LookupResponse: 
+        """A function to compute an IMAGE analogy using Vecto.
+        It is also possible to do multiple analogies in one request body.
+        The computed analogy is not stored in Vecto.
+
+        Args:
+            query (IO): query in the form of an IO object query.
+            analogy_start_end (dict or list): start and end analogy to be computed. 
+            It must follow the format: 
+                
+                {
+                    'start': analogy_start, 
+                    'end': analogy_end
+                }
+
+                where: 
+
+                    'start`: the starting point of the analogy
+                    'end': the ending point of the analogy
+
+                Use open(path, 'rb') for IMAGE data.
+
+            top_k (int): The number of results to return
+            **kwargs: Other keyword arguments for clients other than `requests`
+
+        Returns:
+            LookupResponse: named tuple that contains a list of LookupResult named tuples.
+                results: List[LookupResult]
+            
+            where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+                data: object
+                id: int
+                similarity: float
+        """
+
+        response = self.compute_analogy(query, analogy_start_end, top_k, 'IMAGE')
 
         return response
 
