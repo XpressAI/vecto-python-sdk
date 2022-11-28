@@ -13,23 +13,25 @@
 # limitations under the License.
 
 
-from logging import raiseExceptions
 import requests
-import io
-import os
 from requests_toolbelt import MultipartEncoder
 import json
 
 from typing import NamedTuple, List, IO
 from .exceptions import VectoException, UnauthorizedException, UnpairedAnalogy, ForbiddenException, NotFoundException, ServiceException, InvalidModality
 
+
 class IngestResponse(NamedTuple):
+    '''A named tuple that contains a list of ids of ingested data.'''
     ids: List[int]
 class LookupResult(NamedTuple):
+    '''A named tuple that contains the lookup result content: data (metadata), id, and similarity.'''
     data: object
     id: int
     similarity: float
 class LookupResponse(NamedTuple):
+    '''A named tuple that contains a list of LookupResults.'''
+    
     results: List[LookupResult]
 
 class Client:
@@ -94,8 +96,9 @@ class Vecto():
 
         self._client = Client(token, vector_space_id, vecto_base_url, client)
 
-
-    # Ingest
+    ##########
+    # Ingest #
+    ##########
 
     def ingest(self, ingest_data: dict or list, modality:str, **kwargs) -> IngestResponse:
         """A function to ingest data into Vecto. 
@@ -131,8 +134,9 @@ class Vecto():
 
         return IngestResponse(response.json()['ids'])
 
-
-    # Lookup
+    ##########
+    # Lookup #
+    ##########
 
     def lookup(self, query:IO, modality:str, top_k:int, ids:list=None, **kwargs) -> LookupResponse:
         """A function to search on Vecto, based on the lookup item.
@@ -165,8 +169,9 @@ class Vecto():
             
         return LookupResponse(results=[LookupResult(**r) for r in response.json()['results']])
 
-
-    # Update
+    ##########
+    # Update #
+    ##########
 
     def update_vector_embeddings(self, embedding_data: dict or list, modality:str, **kwargs) -> object:
         """A function to update current vector embeddings with new one.
@@ -231,27 +236,41 @@ class Vecto():
 
         self._client.post_form('/api/v0/update/metadata', data, kwargs)
 
-
-    # Analogy
+    ###########
+    # Analogy #
+    ###########
 
     @classmethod
     def multipartencoder_query_builder(self, query_category, query_string):
-
-            return [(query_category, ('_', query_string))]
+        '''Returns a list of tuples which is expected by analogy form post.
+            EG: [('from', ('_', 'tests/demo_dataset/blue.txt'))]'''
+        return [(query_category, ('_', query_string))]
 
     @classmethod
-    def build_analogy_query(self, analogy_fields, query, analogy_from, analogy_to):
+    def build_analogy_query(self, analogy_fields, query, start, end):
+        '''Accepts the init analogy field, file-like objects for query, start and end, 
+        and returns a list of tuples which contains one query tuple, 
+        and one or more start and end tuples formatted for analogy query.
         
+        Sample output:
+        [('vector_space_id', '28148'), ('top_k', '20'), ('modality', 'TEXT'),
+         ('query', ('_', 'King')), 
+         ('from', ('_', 'Male')), ('to', ('_', 'Female')), 
+         ('from', ('_', 'Husband')), ('to', ('_', 'Wife'))]
+        '''
         analogy_fields.extend(self.multipartencoder_query_builder("query", query))
 
-        if analogy_from is list:
-            if len(analogy_from) != len(analogy_to):
+        if type(start) == list:
+            if len(start) != len(end):
                 raise UnpairedAnalogy(Exception)
+        else:
+            start = [start]
+            end = [end]
 
-        for analogy_from, analogy_to in zip(analogy_from, analogy_to):
+        for start, end in zip(start, end):
             
-            analogy_fields.extend(self.multipartencoder_query_builder("from", analogy_from))
-            analogy_fields.extend(self.multipartencoder_query_builder("to", analogy_to))
+            analogy_fields.extend(self.multipartencoder_query_builder("from", start))
+            analogy_fields.extend(self.multipartencoder_query_builder("to", end))
 
         return analogy_fields
 
@@ -291,16 +310,19 @@ class Vecto():
                 id: int
                 similarity: float
         """
-
+        
         if not type(analogy_start_end) == list:
             analogy_start_end = [analogy_start_end]
 
+        start = []
+        end = []
+
         for analogy_data in analogy_start_end:
-            analogy_from = analogy_data['start']
-            analogy_to = analogy_data['end']
+            start.append(analogy_data['start'])
+            end.append(analogy_data['end'])
 
         init_analogy_fields = [('vector_space_id', str(self._client.vector_space_id)), ('top_k', str(top_k)), ('modality', modality)]
-        analogy_fields = self.build_analogy_query(init_analogy_fields, query, analogy_from, analogy_to)
+        analogy_fields = self.build_analogy_query(init_analogy_fields, query, start, end)
         
         data = MultipartEncoder(fields=analogy_fields)
                 
@@ -348,14 +370,14 @@ class Vecto():
 
         return response
 
-    def create_analogy(self, analogy_id:int, analogy_from:str, analogy_to:str, **kwargs) -> object:
+    def create_analogy(self, analogy_id:int, start:str, end:str, **kwargs) -> object:
         """A function to create an analogy and store in Vecto.
         It is also possible to do multiple analogies in one request body.
 
         Args:
             analogy_id (int): The id for the analogy to be stored as
-            analogy_from (str): Path to text file as analogy from, e.g. ocean blue
-            analogy_to (str): Path to text file as analogy to, e.g. navy blue
+            start (str): Path to text file as analogy from, e.g. ocean blue
+            end (str): Path to text file as analogy to, e.g. navy blue
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
@@ -364,8 +386,8 @@ class Vecto():
 
         data = MultipartEncoder(fields=[
             ('vector_space_id', str(self._client.vector_space_id)), ('analogy_id', str(analogy_id)), ('modality', 'TEXT'),
-            ('from', ('_', open(analogy_from, 'rb'))),
-            ('to', ('_', open(analogy_to, 'rb'))), 
+            ('from', ('_', open(start, 'rb'))),
+            ('to', ('_', open(end, 'rb'))), 
         ])
 
         self._client.post_form('/api/v0/analogy/create', data, kwargs)
