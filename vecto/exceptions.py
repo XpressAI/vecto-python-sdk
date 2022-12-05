@@ -54,8 +54,8 @@ class LookupException(VectoException):
     pass
 
 class ConsumedResourceException(VectoException):
-    def __init__(self, message="The data that you have sent is empty. \
-                                If you are resending ingested data in a notebook, \
+    def __init__(self, message="The data that you have sent is empty.\n\
+                                If you are resending ingested data in a notebook,\n\
                                 please rerun the cell that defines the data."):
         self.message = message
         super().__init__(self.message)

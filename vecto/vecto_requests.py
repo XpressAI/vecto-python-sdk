@@ -45,19 +45,23 @@ class Client:
 
     def post(self, url, data, files, kwargs=None):
 
+        self.validate_input(url=url, data=data, files=files)
+
         headers = {"Authorization": "Bearer %s" % self.token}
         response = self.client.post("%s/%s" % (self.vecto_base_url, url),
                                         data=data,
                                         files=files,
                                         headers=headers,
                                         **kwargs)
-        if not response.ok:
-            self.check_common_error(response.status_code, url=url, data=data, files=files, headers=headers)
-        
+
+        self.check_common_error(response)
+
         return response
 
 
     def post_form(self, url, data, kwargs=None):
+
+        self.validate_input(url=url, data=data)
 
         headers = {"Authorization": "Bearer %s" % self.token, 'Content-Type': data.content_type}
         response = self.client.post("%s/%s" % (self.vecto_base_url, url),
@@ -65,13 +69,34 @@ class Client:
                                 headers=headers,
                                 **kwargs)
 
-        if not response.ok:
-            self.check_common_error(response.status_code, url=url, data=data, headers=headers)
-
+        self.check_common_error(response)
+        
         return response
 
+    def validate_input(self, url=None, data=None, files=None, headers=None):
 
-    def check_common_error(self, status_code: int, url=None, data=None, files=None, headers=None):
+        def _check_input_buffer(files):
+            '''Currently ingest files are formatted as:
+            [('input', ('_', <_io.BufferedReader name='file.png'>, '_'))]
+            '''
+
+            for file in files:
+                for ingest_input in file:
+                    for buffer in ingest_input:
+                        if str(buffer.__class__.__name__) == "BufferedReader":
+                            if buffer.peek() == b'':
+                                raise ConsumedResourceException()
+
+        if files != None:
+            _check_input_buffer(files)
+
+
+    def check_common_error(self, response):
+
+        if response.ok:
+            return
+
+        status_code = response.status_code
 
         if status_code == 400:
             raise VectoException("Submitted data is incorrect, please check your request.")
@@ -82,18 +107,11 @@ class Client:
         elif status_code == 404:
             raise NotFoundException()
         elif 500 <= status_code <= 599:
-            self.check_io_buffer(files)
             raise ServiceException()
         else:
             raise VectoException("Error status code ["+str(status_code)+"].")
 
 
-    def check_io_buffer(self, files):
-        '''Currently ingest files are formatted as:
-        [('input', ('_', <_io.BufferedReader name='file.png'>, '_'))]
-        '''
-        if files[0][1][1].peek() == b'':
-            raise ConsumedResourceException()
 
 class Vecto():
 
