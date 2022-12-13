@@ -262,8 +262,8 @@ class TestUpdating:
         
         for file, vector_id in zip(text, vector_ids):
             updated_vector.append({
+            'id': vector_id,
             'data': io.StringIO(file),
-            'id': vector_id
         })
 
         user_vecto.update_vector_embeddings(updated_vector, modality='TEXT')
@@ -277,8 +277,8 @@ class TestUpdating:
         
         for file, vector_id in zip(image, vector_ids):
             updated_vector.append({
-            'data': open(file, 'rb'),
-            'id': vector_id
+            'id': vector_id,
+            'data': open(file, 'rb')
         })
 
         user_vecto.update_vector_embeddings(updated_vector, modality='IMAGE')
@@ -295,8 +295,8 @@ class TestUpdating:
         
         for file, vector_id in zip(text, vector_ids):
             updated_vector.append({
-            'data': io.StringIO(file),
-            'id': vector_id
+            'id': vector_id,
+            'data': io.StringIO(file)
         })
 
         user_vecto.update_vector_embeddings(updated_vector, modality='TEXT')
@@ -311,8 +311,8 @@ class TestUpdating:
         
         for file, vector_id in zip(image, vector_ids):
             updated_vector.append({
-            'data': open(file, 'rb'),
-            'id': vector_id
+            'id': vector_id,
+            'data': open(file, 'rb')
         })
 
         user_vecto.update_vector_embeddings(updated_vector, modality='IMAGE')
@@ -326,8 +326,8 @@ class TestUpdating:
         new_metadata = 'new_metadata'
 
         updated_metadata = [{
+            'id': vector_id,
             'attribute': json.dumps(new_metadata),
-            'id': vector_id
         }]
 
         user_vecto.update_vector_metadata(updated_metadata)
@@ -367,8 +367,8 @@ class TestUpdating:
         
         for metadata, vector_id in zip(new_metadata, vector_ids):
             updated_metadata.append({
-            'attribute': json.dumps(metadata),
-            'id': vector_id
+            'id': vector_id,
+            'attribute': json.dumps(metadata)
         })
 
         user_vecto.update_vector_metadata(updated_metadata)
@@ -417,8 +417,6 @@ class TestAnalogy:
         response = user_vecto.compute_analogy(query, analogy_start_end, top_k, modality)
         results = response.results
 
-        # logger.info(response)
-        # assert response.status_code is 200
         assert response is not None
         logger.info("Checking if number of lookup results is equal to top_k: " + str(len(results) == top_k))
         assert len(results) is top_k

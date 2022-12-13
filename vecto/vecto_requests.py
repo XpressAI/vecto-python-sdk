@@ -17,28 +17,34 @@ import requests
 from requests_toolbelt import MultipartEncoder
 import json
 
-from typing import NamedTuple, List, IO
+from typing import IO, List, Union, NamedTuple
 from .exceptions import ( VectoException, UnauthorizedException, UnpairedAnalogy, 
                         ForbiddenException, NotFoundException, ServiceException, 
                         InvalidModality, ConsumedResourceException )
 
+import sys
 
-class VectoIngestData(NamedTuple):
+if sys.version_info >= (3, 8):
+    from typing import TypedDict
+else:
+    from typing_extensions import TypedDict
+
+class VectoIngestData(TypedDict):
     '''A named tuple that contains the expected Vecto input format.'''
     data: IO
     attributes: dict
 
-class VectoEmbeddingData(NamedTuple):
+class VectoEmbeddingData(TypedDict):
     '''A named tuple that contains the expected Vecto embedding format for updating.'''
     id: int
     data: IO
 
-class VectoMetadata(NamedTuple):
+class VectoMetadata(TypedDict):
     '''A named tuple that contains the expected Vecto metadata format for updating.'''
     id: int
     attributes: dict
 
-class VectoAnalogyStartEnd(NamedTuple):
+class VectoAnalogyStartEnd(TypedDict):
     '''A named tuple that contains the expected Vecto analogy start-end input format.'''
     start: IO
     end: IO
@@ -58,7 +64,7 @@ class LookupResponse(NamedTuple):
     results: List[LookupResult]
 
 class Client:
-    def __init__(self, token:str, vector_space_id:str or int, vecto_base_url: str, client) -> None:
+    def __init__(self, token:str, vector_space_id:Union[int, str], vecto_base_url: str, client) -> None:
         self.token = token
         self.vector_space_id = vector_space_id
         self.vecto_base_url = vecto_base_url
@@ -137,7 +143,7 @@ class Client:
 class Vecto():
 
     def __init__(self, token:str, 
-                 vector_space_id:int or str, 
+                 vector_space_id:Union[int, str], 
                  vecto_base_url:str="https://api.vecto.ai", 
                  client=requests):
 
@@ -318,7 +324,7 @@ class Vecto():
 
         if type(start) == list:
             if len(start) != len(end):
-                raise UnpairedAnalogy(Exception)
+                raise UnpairedAnalogy()
         else:
             start = [start]
             end = [end]

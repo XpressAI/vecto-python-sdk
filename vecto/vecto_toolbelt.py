@@ -2,8 +2,9 @@ from .vecto_requests import Vecto, IngestResponse
 import math
 from tqdm import tqdm
 import io
+from typing import List, Union
 
-def ingest_image(vs:Vecto, batch_path_list:str or list, metadata_list:str or list, **kwargs) -> IngestResponse:
+def ingest_image(vs:Vecto, batch_path_list:Union[str, list], metadata_list:Union[str, list], **kwargs) -> IngestResponse:
     """A function that accepts a str or list of image paths and their metadata, formats it 
     in a list of dicts to be accepted by the ingest function. 
 
@@ -40,7 +41,7 @@ def ingest_image(vs:Vecto, batch_path_list:str or list, metadata_list:str or lis
 
     return response
 
-def ingest_all_images(vs:Vecto, path_list:list, metadata_list:list, batch_size:int=64) -> IngestResponse:
+def ingest_all_images(vs:Vecto, path_list:list, metadata_list:list, batch_size:int=64) -> List[IngestResponse]:
     """A function that accepts a list of image paths and their metadata, then send them
     to the ingest_image function in batches.
 
@@ -72,7 +73,7 @@ def ingest_all_images(vs:Vecto, path_list:list, metadata_list:list, batch_size:i
 
     return ingest_ids
 
-def ingest_text(vs:Vecto, batch_text_list:list, metadata_list:list, **kwargs) -> IngestResponse:
+def ingest_text(vs:Vecto, batch_text_list:Union[str, list], metadata_list:Union[str, list], **kwargs) -> IngestResponse:
     """A function that accepts a str or list of text and their metadata, formats it 
     in a list of dicts to be accepted by the ingest function. 
 
@@ -88,6 +89,12 @@ def ingest_text(vs:Vecto, batch_text_list:list, metadata_list:list, **kwargs) ->
     """
 
     vecto_data = []
+
+    if type(batch_text_list) != list:
+        batch_text_list = [batch_text_list]
+
+    if type(metadata_list) != list:
+        metadata_list = [metadata_list]
     
     for text, metadata in zip(batch_text_list, metadata_list):
 
@@ -100,7 +107,7 @@ def ingest_text(vs:Vecto, batch_text_list:list, metadata_list:list, **kwargs) ->
 
     return response
 
-def ingest_all_text(text_list:list, metadata_list:list, batch_size=64) -> IngestResponse:
+def ingest_all_text(text_list:list, metadata_list:list, batch_size=64) -> List[IngestResponse]:
     """A function that accepts a list of text and their metadata, then send them
     to the ingest_text function in batches.
 
