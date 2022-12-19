@@ -30,22 +30,28 @@ else:
     from typing_extensions import TypedDict
 
 class VectoIngestData(TypedDict):
-    '''A named tuple that contains the expected Vecto input format.'''
+    '''A named tuple that contains the expected Vecto input format.
+    For data, you may use open(path, 'rb') for IMAGE queries or io.StringIO(text) for TEXT queries.
+    You may append as many metadata to attributes as needed.'''
     data: IO
     attributes: dict
 
 class VectoEmbeddingData(TypedDict):
-    '''A named tuple that contains the expected Vecto embedding format for updating.'''
+    '''A named tuple that contains the expected Vecto embedding format for updating.
+    For data, you may use open(path, 'rb') for IMAGE queries or io.StringIO(text) for TEXT queries.
+    '''
     id: int
     data: IO
 
 class VectoMetadata(TypedDict):
-    '''A named tuple that contains the expected Vecto metadata format for updating.'''
+    '''A named tuple that contains the expected Vecto metadata format for updating.
+    You may append as many metadata to attributes as needed'''
     id: int
     attributes: dict
 
 class VectoAnalogyStartEnd(TypedDict):
-    '''A named tuple that contains the expected Vecto analogy start-end input format.'''
+    '''A named tuple that contains the expected Vecto analogy start-end input format.
+    For data, you may use open(path, 'rb') for IMAGE queries or io.StringIO(text) for TEXT queries.'''
     start: IO
     end: IO
 
@@ -157,25 +163,17 @@ class Vecto():
     # Ingest #
     ##########
 
-    def ingest(self, ingest_data: VectoIngestData or List[VectoIngestData], modality:str, **kwargs) -> IngestResponse:
-        """A function to ingest data into Vecto. 
+    def ingest(self, ingest_data: Union[VectoIngestData, List[VectoIngestData]], modality:str, **kwargs) -> IngestResponse:
+        '''A function to ingest data into Vecto. 
             
         Args:    
-            ingest_data (VectoIngestData or list of VectoIngestData): Ingest data should follow the VectoIngestData format: 
-                {
-                    'data': IO, 
-                    'attributes': dict
-                }
-                You can use open(path, 'rb') for IMAGE queries and io.StringIO(text) for TEXT queries.
-                You may append as many metadata to attributes as needed.
+            ingest_data (VectoIngestData or list of VectoIngestData): you can also provide a dict, but ensure that it complies with VectoIngestData.
             modality (str): 'IMAGE' or 'TEXT'
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
             IngestResponse: named tuple that contains the list of index of ingested objects.
-                IngestResponse(NamedTuple):
-                    ids: List[int]
-        """
+        '''
         if type(ingest_data) != list:
             ingest_data = [ingest_data]
 
@@ -196,26 +194,20 @@ class Vecto():
     ##########
 
     def lookup(self, query:IO, modality:str, top_k:int, ids:list=None, **kwargs) -> LookupResponse:
-        """A function to search on Vecto, based on the lookup item.
+        '''A function to search on Vecto, based on the lookup item.
 
         Args:
             query (IO): A IO file-like object. 
                         You can use open(path, 'rb') for IMAGE queries and io.StringIO(text) for TEXT queries.
-
             modality (str): The type of the file - "IMAGE" or "TEXT"
             top_k (int): The number of results to return
             ids (list): A list of vector ids to search on aka subset of vectors, defaults to None
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
-            LookupResponse: named tuple that contains a list of LookupResult named tuples.
-                results: List[LookupResult]
-            
+            LookupResponse: named tuple that contains a list of LookupResult named tuples.            
             where LookResult is named tuple with `data`, `id`, and `similarity` keys.
-                data: object
-                id: int
-                similarity: float
-        """
+        '''
 
         if modality != 'IMAGE' and modality != 'TEXT':
             raise InvalidModality()
@@ -230,27 +222,17 @@ class Vecto():
     # Update #
     ##########
 
-    def update_vector_embeddings(self, embedding_data: VectoEmbeddingData or List[VectoEmbeddingData], modality:str, **kwargs) -> object:
-        """A function to update current vector embeddings with new one.
+    def update_vector_embeddings(self, embedding_data: Union[VectoEmbeddingData, List[VectoEmbeddingData]], modality:str, **kwargs) -> object:
+        '''A function to update current vector embeddings with new one.
 
         Args:
             embedding_data (VectoEmbeddingData or list of VectoEmbeddingData): data that contains the embedding data to be updated. 
-            It must have the following keys: 
-                {
-                    'id': id
-                    'data': data, 
-                }
-                where: 
-                    'id' (int): vector id to update
-                    'data' (IO): metadata to update
-                    You can use open(path, 'rb') for IMAGE queries and io.StringIO(text) for TEXT queries.
-
             modality (str): The type of the file - "IMAGE" or "TEXT"
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
             dict: Client response body
-        """
+        '''
 
         if type(embedding_data) != list:
             embedding_data = [embedding_data]
@@ -267,24 +249,14 @@ class Vecto():
         return response
 
 
-    def update_vector_metadata(self, update_metadata: VectoMetadata or List[VectoMetadata], **kwargs) -> object:
-        """A function to update current vector metadata with new one.
+    def update_vector_metadata(self, update_metadata: Union[VectoMetadata, List[VectoMetadata]], **kwargs) -> object:
+        '''A function to update current vector metadata with new one.
 
         Args:
-            update_metadata (VectoMetadata or list of VectoMetadata) : metadata to be updated. 
-            It must follow the format: 
-                {
-                    'id': id
-                    'attribute': metadata, 
-                }
-
-                where: 
-                    'id' (int): vector id to update
-                    'attribute' (dict): metadata to update
-
+            update_metadata (VectoMetadata or list of VectoMetadata) : metadata to be updated.
             **kwargs: Other keyword arguments for clients other than `requests`
 
-        """
+        '''
 
         if type(update_metadata) != list:
             update_metadata = [update_metadata]
@@ -337,41 +309,23 @@ class Vecto():
         return analogy_fields
 
 
-    def compute_analogy(self, query:IO, analogy_start_end:VectoAnalogyStartEnd or List[VectoAnalogyStartEnd], top_k:int, modality:str, **kwargs) -> LookupResponse: # can be text or images
-        """A function to compute an analogy using Vecto.
+    def compute_analogy(self, query:IO, analogy_start_end:Union[VectoAnalogyStartEnd, List[VectoAnalogyStartEnd]], top_k:int, modality:str, **kwargs) -> LookupResponse: # can be text or images
+        '''A function to compute an analogy using Vecto.
         It is also possible to do multiple analogies in one request body.
         The computed analogy is not stored in Vecto.
 
         Args:
             query (IO): query in the form of an IO object query.
-            analogy_start_end (VectoAnalogyStartEnd or list of VectoAnalogyStartEnd): start and end analogy to be computed. 
-            It must follow the format: 
-                
-                {
-                    'start': analogy_start, 
-                    'end': analogy_end
-                }
-
-                where: 
-
-                    'start (IO)': the starting point of the analogy
-                    'end (IO)': the ending point of the analogy
-
-                You can use open(path, 'rb') for IMAGE queries and io.StringIO(text) for TEXT queries.
-
+            analogy_start_end (VectoAnalogyStartEnd or list of VectoAnalogyStartEnd): start and end analogy to be computed.
+            Use open(path, 'rb') for IMAGE or io.StringIO(text) for TEXT analogies.
             top_k (int): The number of results to return
             modality (str): The type of the file, 'IMAGE' or 'TEXT'
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
             LookupResponse: named tuple that contains a list of LookupResult named tuples.
-                results: List[LookupResult]
-            
             where LookResult is named tuple with `data`, `id`, and `similarity` keys.
-                data: object
-                id: int
-                similarity: float
-        """
+        '''
         
         if not type(analogy_start_end) == list:
             analogy_start_end = [analogy_start_end]
@@ -389,90 +343,55 @@ class Vecto():
         data = MultipartEncoder(fields=analogy_fields)
                 
         response = self._client.post_form('/api/v0/analogy', data, kwargs)
-
+        
         return LookupResponse(results=[LookupResult(**r) for r in response.json()['results']])
 
 
-    def compute_text_analogy(self, query:IO, analogy_start_end:VectoAnalogyStartEnd or List[VectoAnalogyStartEnd], top_k:int, **kwargs) -> LookupResponse: 
-        """A function to compute a Text analogy using Vecto.
+    def compute_text_analogy(self, query:IO, analogy_start_end:Union[VectoAnalogyStartEnd, List[VectoAnalogyStartEnd]], top_k:int, **kwargs) -> LookupResponse: 
+        '''A function to compute a Text analogy using Vecto.
         It is also possible to do multiple analogies in one request body.
         The computed analogy is not stored in Vecto.
 
         Args:
             query (IO): query in the form of an IO object query.
             analogy_start_end (VectoAnalogyStartEnd or list of VectoAnalogyStartEnd): start and end analogy to be computed. 
-            It must follow the format: 
-                
-                {
-                    'start': analogy_start, 
-                    'end': analogy_end
-                }
-
-                where: 
-
-                    'start (IO)': the starting point of the analogy
-                    'end (IO)': the ending point of the analogy
-
-                Use io.StringIO(text) for TEXT queries.
-
+                You may use io.StringIO(text) for TEXT data.
             top_k (int): The number of results to return
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
             LookupResponse: named tuple that contains a list of LookupResult named tuples.
-                results: List[LookupResult]
-            
             where LookResult is named tuple with `data`, `id`, and `similarity` keys.
-                data: object
-                id: int
-                similarity: float
-        """
+
+        '''
 
         response = self.compute_analogy(query, analogy_start_end, top_k, 'TEXT')
 
         return response
 
-    def compute_image_analogy(self, query:IO, analogy_start_end:VectoAnalogyStartEnd or List[VectoAnalogyStartEnd], top_k:int, **kwargs) -> LookupResponse: 
-        """A function to compute an IMAGE analogy using Vecto.
+    def compute_image_analogy(self, query:IO, analogy_start_end:Union[VectoAnalogyStartEnd, List[VectoAnalogyStartEnd]], top_k:int, **kwargs) -> LookupResponse: 
+        '''A function to compute an IMAGE analogy using Vecto.
         It is also possible to do multiple analogies in one request body.
         The computed analogy is not stored in Vecto.
 
         Args:
             query (IO): query in the form of an IO object query.
             analogy_start_end (VectoAnalogyStartEnd or list of VectoAnalogyStartEnd): start and end analogy to be computed. 
-            It must follow the format: 
-                
-                {
-                    'start': analogy_start, 
-                    'end': analogy_end
-                }
-
-                where: 
-
-                    'start (IO)': the starting point of the analogy
-                    'end (IO)': the ending point of the analogy
-
                 Use open(path, 'rb') for IMAGE data.
-
             top_k (int): The number of results to return
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
             LookupResponse: named tuple that contains a list of LookupResult named tuples.
-                results: List[LookupResult]
-            
             where LookResult is named tuple with `data`, `id`, and `similarity` keys.
-                data: object
-                id: int
-                similarity: float
-        """
+        '''
 
         response = self.compute_analogy(query, analogy_start_end, top_k, 'IMAGE')
 
         return response
 
     def create_analogy(self, analogy_id:int, start:str, end:str, **kwargs) -> object:
-        """A function to create an analogy and store in Vecto.
+        '''A function to create an analogy and store in Vecto.
         It is also possible to do multiple analogies in one request body.
 
         Args:
@@ -483,7 +402,7 @@ class Vecto():
 
         Returns:
             dict: Client response body
-        """
+        '''
 
         data = MultipartEncoder(fields=[
             ('vector_space_id', str(self._client.vector_space_id)), ('analogy_id', str(analogy_id)), ('modality', 'TEXT'),
@@ -495,7 +414,7 @@ class Vecto():
 
 
     def delete_analogy(self, analogy_id:int, **kwargs) -> object:
-        """A function to delete an analogy that is stored in Vecto.
+        '''A function to delete an analogy that is stored in Vecto.
 
         Args:
             analogy_id (int): The id of the analogy to be deleted
@@ -503,14 +422,14 @@ class Vecto():
 
         Returns:
             dict: Client response body
-        """
+        '''
         data = MultipartEncoder(fields={'vector_space_id': str(self._client.vector_space_id), 'analogy_id': str(analogy_id)})
         self._client.post_form('/api/v0/analogy/delete', data, kwargs)
 
     # Delete
 
     def delete_vector_embeddings(self, vector_ids:list, **kwargs) -> object:
-        """A function to delete vector embeddings that is stored in Vecto.
+        '''A function to delete vector embeddings that is stored in Vecto.
 
         Args:
             vector_ids (list): A list of vector ids to be deleted
@@ -518,14 +437,14 @@ class Vecto():
 
         Returns:
             dict: Client response body
-        """
+        '''
 
         data = MultipartEncoder(fields=[('vector_space_id', str(self._client.vector_space_id))] + [('id', str(id)) for id in vector_ids])
         response = self._client.post_form('/api/v0/delete', data, kwargs)
         
 
     def delete_vector_space_entries(self, **kwargs) -> object:
-        """A function to delete the current vector space in Vecto. 
+        '''A function to delete the current vector space in Vecto. 
         All ingested entries will be deleted as well.
 
         Args:
@@ -533,7 +452,7 @@ class Vecto():
 
         Returns:
             dict: Client response body
-        """
+        '''
 
         data = MultipartEncoder({'vector_space_id': str(self._client.vector_space_id)})
         self._client.post_form('/api/v0/delete_all', data, kwargs)

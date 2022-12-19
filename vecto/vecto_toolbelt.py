@@ -15,8 +15,6 @@ def ingest_image(vs:Vecto, batch_path_list:Union[str, list], metadata_list:Union
 
     Returns:
         IngestResponse: named tuple that contains the list of index of ingested objects.
-            IngestResponse(NamedTuple):
-                ids: List[int]
     """
 
     if type(batch_path_list) != list:
@@ -53,8 +51,6 @@ def ingest_all_images(vs:Vecto, path_list:list, metadata_list:list, batch_size:i
 
     Returns:
         IngestResponse: named tuple that contains the list of index of ingested objects.
-            IngestResponse(NamedTuple):
-                ids: List[int]
     """
     batch_count = math.ceil(len(path_list) / batch_size)
     path_batches = [path_list[i * batch_size: (i + 1) * batch_size] for i in range(batch_count)]
@@ -84,8 +80,6 @@ def ingest_text(vs:Vecto, batch_text_list:Union[str, list], metadata_list:Union[
 
     Returns:
         IngestResponse: named tuple that contains the list of index of ingested objects.
-            IngestResponse(NamedTuple):
-                ids: List[int]
     """
 
     vecto_data = []
@@ -119,8 +113,6 @@ def ingest_all_text(text_list:list, metadata_list:list, batch_size=64) -> List[I
 
     Returns:
         IngestResponse: named tuple that contains the list of index of ingested objects.
-            IngestResponse(NamedTuple):
-                ids: List[int]
     """
     batch_count = math.ceil(len(text_list) / batch_size)
     batches_path = [text_list[i * batch_size: (i + 1) * batch_size] for i in range(batch_count)]

@@ -12,7 +12,7 @@ class UnauthorizedException(VectoException):
         return f'{self.message}'
 
 class ForbiddenException(VectoException):
-    def __init__(self, message="User is unauthorized, please check your access token or user/password."):
+    def __init__(self, message="User is unauthorized to perform this action, please check that you have permissions to access this resource."):
         self.message = message
         super().__init__(self.message)
 
@@ -35,7 +35,7 @@ class ServiceException(VectoException):
         return f'{self.message}'
 
 class UnpairedAnalogy(VectoException):
-    def __init__(self, message="Unpaired analogy error received."):
+    def __init__(self, message="Ensure that you have provided both `start` and `end` to the analogy."):
         self.message = message
         super().__init__(self.message)
 
