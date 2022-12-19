@@ -4,6 +4,13 @@ from tqdm import tqdm
 import io
 from typing import List, Union
 
+
+def batch(input_list: list, batch_size:int):
+    batch_count = math.ceil(len(input_list) / batch_size)
+    for i in range(batch_count):
+        yield input_list[i * batch_size : (i+1) * batch_size]
+
+
 def ingest_image(vs:Vecto, batch_path_list:Union[str, list], metadata_list:Union[str, list], **kwargs) -> IngestResponse:
     """A function that accepts a str or list of image paths and their metadata, formats it 
     in a list of dicts to be accepted by the ingest function. 
@@ -53,12 +60,13 @@ def ingest_all_images(vs:Vecto, path_list:list, metadata_list:list, batch_size:i
         IngestResponse: named tuple that contains the list of index of ingested objects.
     """
     batch_count = math.ceil(len(path_list) / batch_size)
-    path_batches = [path_list[i * batch_size: (i + 1) * batch_size] for i in range(batch_count)]
-    metadata_batches = [metadata_list[i * batch_size: (i + 1) * batch_size] for i in range(batch_count)]
+
+    path_batches = batch(path_list, batch_size)
+    metadata_batches = batch(metadata_list, batch_size)
 
     ingest_ids = []
 
-    for path_batch, metadata_batch in tqdm(zip(path_batches, metadata_batches), total = len(path_batches)):
+    for path_batch, metadata_batch in tqdm(zip(path_batches, metadata_batches), total = batch_count):
         
         try:
             ids = ingest_image(vs, path_batch, metadata_batch)
@@ -101,7 +109,7 @@ def ingest_text(vs:Vecto, batch_text_list:Union[str, list], metadata_list:Union[
 
     return response
 
-def ingest_all_text(text_list:list, metadata_list:list, batch_size=64) -> List[IngestResponse]:
+def ingest_all_text(vs:Vecto, text_list:list, metadata_list:list, batch_size=64) -> List[IngestResponse]:
     """A function that accepts a list of text and their metadata, then send them
     to the ingest_text function in batches.
 
@@ -114,14 +122,15 @@ def ingest_all_text(text_list:list, metadata_list:list, batch_size=64) -> List[I
     Returns:
         IngestResponse: named tuple that contains the list of index of ingested objects.
     """
-    batch_count = math.ceil(len(text_list) / batch_size)
-    batches_path = [text_list[i * batch_size: (i + 1) * batch_size] for i in range(batch_count)]
-    batches_text = [metadata_list[i * batch_size: (i + 1) * batch_size] for i in range(batch_count)]
     
+    batch_count = math.ceil(len(text_list) / batch_size)
+
+    text_batches = batch(text_list, batch_size)
+    metadata_batches = batch(metadata_list, batch_size)
     ingest_ids = []
 
-    for batch,text in tqdm(zip(batches_path,batches_text), total = len(batches_path)):
-        ids = ingest_text(batch,text)
+    for text_batch, metadata_batch in tqdm(zip(text_batches,metadata_batches), total = batch_count):
+        ids = ingest_text(vs, text_batch, metadata_batch)
         ingest_ids.append(ids)
 
     return ingest_ids

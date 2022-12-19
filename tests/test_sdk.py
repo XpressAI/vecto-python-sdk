@@ -104,7 +104,7 @@ class TestIngesting:
     # Test ingesting multiple images with source attribute into Vecto
     def test_ingest_image_with_valid_source(self):
         batch = TestDataset.get_image_dataset()[:5]
-        data = {'vector_space_id': user_vecto._client.vector_space_id, 'data': [], 'modality': 'IMAGE'}
+        data = {'vector_space_id': user_vecto.vector_space_id, 'data': [], 'modality': 'IMAGE'}
     
         vecto_data = []
         files = []
@@ -529,7 +529,7 @@ class TestExceptions:
     def test_ingest_image_with_invalid_source(self):
 
         batch = TestDataset.get_image_dataset()[:5]
-        data = {'vector_space_id': user_vecto._client.vector_space_id, 'data': [], 'modality': 'IMAGE'}
+        data = {'vector_space_id': user_vecto.vector_space_id, 'data': [], 'modality': 'IMAGE'}
     
         vecto_data = []
         files = []
