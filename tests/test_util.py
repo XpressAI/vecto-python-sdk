@@ -26,6 +26,7 @@ import pathlib
 import pandas as pd
 import random
 import json
+from typing import List
 
 random.seed(1234)
 
@@ -45,7 +46,7 @@ class TestDataset:
     # Get dataset
 
     @classmethod
-    def get_image_dataset(cls) -> list[str]:
+    def get_image_dataset(cls) -> List[str]:
         """Gets and returns the list of image paths to be ingested into Vecto.
 
         Args: None
@@ -58,7 +59,7 @@ class TestDataset:
         return dataset_images
 
     @classmethod
-    def get_random_image(cls) -> list[str]:
+    def get_random_image(cls) -> List[str]:
         """Gets and returns randomly one image path to be ingested into Vecto.
 
         Args: None
@@ -71,7 +72,7 @@ class TestDataset:
         return [random_image]
     
     @classmethod
-    def get_text_dataset(cls) -> list[str]:
+    def get_color_dataset(cls) -> List[str]:
         """Gets and returns the list of input text to be ingested into Vecto.
 
         Args: None
@@ -79,14 +80,31 @@ class TestDataset:
         Returns: 
             list: a list of input text
         """
+            
         df = pd.read_csv(dataset_path.joinpath('colors.csv'), 
                 names=['color', 'name', 'hex', 'R', 'G', 'B'])
         df = df[:100]
 
         return df['name']
-    
+
     @classmethod
-    def get_random_text(cls) -> list[str]:
+    def get_profession_dataset(cls) -> List[str]:
+        """Gets and returns the list of input text to be ingested into Vecto.
+
+        Args: None
+
+        Returns: 
+            list: a list of input text
+        """
+
+        file = "tests/demo_dataset/profession.txt"
+        with open(file) as f:
+            professions = [profession.rstrip() for profession in f]        
+            
+        return professions
+
+    @classmethod
+    def get_random_text(cls, text_dataset) -> List[str]:
         """Gets and returns the list of image paths to be ingested into Vecto.
 
         Args: None
@@ -94,7 +112,7 @@ class TestDataset:
         Returns: 
             list: a random text
         """
-        dataset_text = cls.get_text_dataset()
+        dataset_text = text_dataset()
         random_text = dataset_text.iloc[random.randrange(len(dataset_text))]
         return [random_text]
 
@@ -111,6 +129,7 @@ class TestDataset:
         files = []
         for path in batch_path_list:
             relative = "%s/%s" % (path.parent.name, path.name)
+            # relative = ""
             data['data'].append(json.dumps(relative))
             files.append(open(path, 'rb'))
         
@@ -120,7 +139,7 @@ class TestDataset:
         return data
 
     @classmethod
-    def get_text_metadata(cls, batch_index_list:list, batch_text_list:list) -> dict:
+    def get_text_metadata(cls, batch_text_list:list, batch_index_list:list) -> dict:
         """Computes the metadata that is done in ingest_text.
 
         Args: None
@@ -128,13 +147,10 @@ class TestDataset:
         Returns: 
             dict: the metadata
         """
-        data = {'vector_space_id': vector_space_id, 'data': [], 'modality': 'TEXT'}
-        files = []
-        for index, text in zip(batch_index_list, batch_text_list):
-            data['data'].append(json.dumps('text_{}'.format(index) + '_{}'.format(text)))
+        data = []
 
-        for f in files:
-            f.close()
+        for index, text in zip(batch_index_list, batch_text_list):
+            data.append('text_{}'.format(index) + '_{}'.format(text))
 
         return data
 
@@ -159,8 +175,9 @@ class DatabaseTwin:
 
         Returns: None
         """
-        for id, path in zip(results, metadata['data']):
-            self.ref_db.append([id, json.loads(path)])
+
+        for id, path in zip(results, metadata):
+            self.ref_db.append([id, path])
 
     def get_database(self) -> pd.DataFrame:
         """A function to get the latest database twin, 
@@ -187,7 +204,7 @@ class DatabaseTwin:
         for vector_id in vector_ids:
             self.deleted_ids.append(vector_id)
 
-    def get_deleted_ids(self) -> list[int]:
+    def get_deleted_ids(self) -> List[int]:
         """A function to get the latest deleted vector ids, 
         which will be used to check if Vecto deleted the entries correctly.
 
