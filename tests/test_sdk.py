@@ -15,7 +15,7 @@
 import io
 from vecto import Vecto, vecto_toolbelt
 from vecto.exceptions import VectoException, ForbiddenException
-from .test_util import DatabaseTwin, TestDataset
+from test_util import DatabaseTwin, TestDataset
 import random
 import logging
 import pytest
@@ -37,8 +37,10 @@ logger = logging.getLogger(__name__)
 import os
 token = os.environ['user_token']
 vector_space_id = int(os.environ['vector_space_id'])
+vecto_base_url = os.environ['vecto_base_url']
 
-user_vecto = Vecto(token, vector_space_id)
+
+user_vecto = Vecto(token, vector_space_id, vecto_base_url=vecto_base_url)
 user_db_twin = DatabaseTwin()
 
 # Clear off vector space before start
