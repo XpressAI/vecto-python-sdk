@@ -60,8 +60,8 @@ class IngestResponse(NamedTuple):
     ids: List[int]
 
 class LookupResult(NamedTuple):
-    '''A named tuple that contains the lookup result content: data (metadata), id, and similarity.'''
-    data: object
+    '''A named tuple that contains the lookup result content: attributes, id, and similarity.'''
+    attributes: object
     id: int
     similarity: float
 
@@ -78,7 +78,7 @@ class Client:
     def post(self, url, data, files, kwargs=None):
 
         self.validate_input(url=url, data=data, files=files)
-
+        
         headers = {"Authorization": "Bearer %s" % self.token}
         response = self.client.post("%s/%s" % (self.vecto_base_url, url),
                                         data=data,
@@ -183,7 +183,8 @@ class Vecto():
         files = [('input', ('_', r['data'], '_')) for r in ingest_data]
         metadata = [json.dumps(r['attributes']) for r in ingest_data]
         
-        data = {'data': metadata, 'modality': modality}
+        data = {'attributes': metadata, 'modality': modality}
+
         response = self._client.post(('/api/v0/space/%s/index' % self.vector_space_id), data, files, kwargs)
 
         return IngestResponse(response.json()['ids'])
