@@ -265,13 +265,13 @@ class Vecto():
             update_metadata = [update_metadata]
 
         vector_ids = [(r['id']) for r in update_metadata]
-        new_metadata = [( r['attribute']) for r in update_metadata]
+        new_metadata = [( r['attributes']) for r in update_metadata]
 
         data = MultipartEncoder(fields=[('vector_space_id', str(self.vector_space_id))] + 
                                             [('id', str(id)) for id in vector_ids] + 
-                                            [('metadata', md) for md in new_metadata])
+                                            [('attributes', md) for md in new_metadata])
 
-        self._client.post_form(('/api/v0/space/%s/update/metadata' % self.vector_space_id), data, kwargs)
+        self._client.post_form(('/api/v0/space/%s/update/attributes' % self.vector_space_id), data, kwargs)
 
     ###########
     # Analogy #
@@ -292,8 +292,8 @@ class Vecto():
         Sample output:
         [('vector_space_id', '28148'), ('top_k', '20'), ('modality', 'TEXT'),
          ('query', ('_', 'King')), 
-         ('from', ('_', 'Male')), ('to', ('_', 'Female')), 
-         ('from', ('_', 'Husband')), ('to', ('_', 'Wife'))]
+         ('start', ('_', 'Male')), ('end', ('_', 'Female')), 
+         ('start', ('_', 'Husband')), ('end', ('_', 'Wife'))]
         '''
         analogy_fields.extend(self.multipartencoder_query_builder("query", query))
 
@@ -306,8 +306,8 @@ class Vecto():
 
         for start, end in zip(start, end):
             
-            analogy_fields.extend(self.multipartencoder_query_builder("from", start))
-            analogy_fields.extend(self.multipartencoder_query_builder("to", end))
+            analogy_fields.extend(self.multipartencoder_query_builder("start", start))
+            analogy_fields.extend(self.multipartencoder_query_builder("end", end))
 
         return analogy_fields
 
@@ -393,7 +393,7 @@ class Vecto():
 
         return response
 
-    def create_analogy(self, analogy_id:int, start:str, end:str, **kwargs) -> object:
+    def create_analogy(self, start:str, end:str, **kwargs) -> object:
         '''A function to create an analogy and store in Vecto.
         It is also possible to do multiple analogies in one request body.
 
@@ -406,14 +406,15 @@ class Vecto():
         Returns:
             dict: Client response body
         '''
-
+        # import pdb; pdb.set_trace()
+        
         data = MultipartEncoder(fields=[
-            ('vector_space_id', str(self.vector_space_id)), ('analogy_id', str(analogy_id)), ('modality', 'TEXT'),
-            ('from', ('_', open(start, 'rb'))),
-            ('to', ('_', open(end, 'rb'))), 
+            ('modality', 'TEXT'),
+            ('start', ('_', open(start, 'rb'))),
+            ('end', ('_', open(end, 'rb'))), 
         ])
 
-        self._client.post_form(('/api/v0/space/%s/analogy/create' % self.vector_space_id), data, kwargs)
+        self._client.post_form(('/api/v0/space/%s/analogy' % self.vector_space_id), data, kwargs)
 
 
     def delete_analogy(self, analogy_id:int, **kwargs) -> object:

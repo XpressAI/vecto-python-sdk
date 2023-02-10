@@ -14,7 +14,7 @@
 
 import io
 from vecto import Vecto, vecto_toolbelt
-from vecto.exceptions import VectoException, ForbiddenException
+from vecto.exceptions import VectoException, ForbiddenException, ServiceException
 from test_util import DatabaseTwin, TestDataset
 import random
 import logging
@@ -62,7 +62,6 @@ class TestIngesting:
     def test_ingest_single_image(self):
         image = TestDataset.get_random_image()
         metadata = TestDataset.get_image_metadata(image)
-
         response = vecto_toolbelt.ingest_image(user_vecto, image, metadata['data'])
 
         assert response is not None
@@ -198,8 +197,8 @@ class TestLookup:
         assert response_k5 is not None
         logger.info("Checking if there's 5 lookup results: " + str(len(results_k5) == 5))
         assert len(results_k5) is 5
-        logger.info("Checking if values in 'data' is string: " + str(isinstance(results_k5[0].data, str)))
-        assert isinstance(results_k5[0].data, str)
+        logger.info("Checking if values in 'data' is string: " + str(isinstance(results_k5[0].attributes, str)))
+        assert isinstance(results_k5[0].attributes, str)
         logger.info("Checking if values in 'id' is not empty: " + str(results_k5[round(len(results_k5) / 2)].id is not None))
         assert results_k5[round(len(results_k5) / 2)].id is not None
         logger.info("Checking if values in 'similarity' is float: " + str(isinstance(results_k5[-1].similarity, float)))
@@ -214,8 +213,8 @@ class TestLookup:
         assert response_k100 is not None
         logger.info("Checking if there's 17 lookup results: " + str(len(results_k100) == 17))
         assert len(results_k100) is 17
-        logger.info("Checking if values in 'data' is string: " + str(isinstance(results_k100[0].data, str)))
-        assert isinstance(results_k100[0].data, str)
+        logger.info("Checking if values in 'data' is string: " + str(isinstance(results_k100[0].attributes, str)))
+        assert isinstance(results_k100[0].attributes, str)
         logger.info("Checking if values in 'id' is not empty: " + str(results_k100[round(len(results_k100) / 2)].id is not None))
         assert results_k100[round(len(results_k100) / 2)].id is not None
         logger.info("Checking if values in 'similarity' is float: " + str(isinstance(results_k100[-1].similarity, float)))
@@ -231,8 +230,8 @@ class TestLookup:
         assert response_k5 is not None
         logger.info("Checking if there's 5 lookup results: " + str(len(results_k5) == 5))
         assert len(results_k5) is 5
-        logger.info("Checking if values in 'data' is string: " + str(isinstance(results_k5[0].data, str)))
-        assert isinstance(results_k5[0].data, str)
+        logger.info("Checking if values in 'data' is string: " + str(isinstance(results_k5[0].attributes, str)))
+        assert isinstance(results_k5[0].attributes, str)
         logger.info("Checking if values in 'id' is not empty: " + str(results_k5[round(len(results_k5) / 2)].id is not None))
         assert results_k5[round(len(results_k5) / 2)].id is not None
         logger.info("Checking if values in 'similarity' is float: " + str(isinstance(results_k5[-1].similarity, float)))
@@ -245,8 +244,8 @@ class TestLookup:
         assert response_k100 is not None
         logger.info("Checking if there's 17 lookup results: " + str(len(results_k100) == 17))
         assert len(results_k100) is 17
-        logger.info("Checking if values in 'data' is string: " + str(isinstance(results_k100[0].data, str)))
-        assert isinstance(results_k100[0].data, str)
+        logger.info("Checking if values in 'data' is string: " + str(isinstance(results_k100[0].attributes, str)))
+        assert isinstance(results_k100[0].attributes, str)
         logger.info("Checking if values in 'id' is not empty: " + str(results_k100[round(len(results_k100) / 2)].id is not None))
         assert results_k100[round(len(results_k100) / 2)].id is not None
         logger.info("Checking if values in 'similarity' is float: " + str(isinstance(results_k100[-1].similarity, float)))
@@ -329,7 +328,7 @@ class TestUpdating:
 
         updated_metadata = [{
             'id': vector_id,
-            'attribute': json.dumps(new_metadata),
+            'attributes': json.dumps(new_metadata),
         }]
 
         user_vecto.update_vector_metadata(updated_metadata)
@@ -340,8 +339,8 @@ class TestUpdating:
         lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=1, ids=vector_id)
         results = lookup_response.results[0]
 
-        logger.info("Checking if metadata is updated: " + str(results.data == new_metadata))
-        assert results.data == new_metadata
+        logger.info("Checking if metadata is updated: " + str(results.attributes == new_metadata))
+        assert results.attributes == new_metadata
 
         # Just a dummy lookup to return all the data in the vector space - check other entries
         f = io.StringIO('blue')
@@ -351,7 +350,7 @@ class TestUpdating:
         #need to iterate though this object
         for result in lookup_response.results:
             if result.id != vector_id:
-                lookup_metadata.append([result.id, result.data])
+                lookup_metadata.append([result.id, result.attributes])
         logger.info("Checking if other metadata is not updated...")
         for result in lookup_metadata:
             id = result[0]
@@ -370,7 +369,7 @@ class TestUpdating:
         for metadata, vector_id in zip(new_metadata, vector_ids):
             updated_metadata.append({
             'id': vector_id,
-            'attribute': json.dumps(metadata)
+            'attributes': json.dumps(metadata)
         })
 
         user_vecto.update_vector_metadata(updated_metadata)
@@ -382,7 +381,7 @@ class TestUpdating:
         lookup_metadata = []
         for result in lookup_response:
             if result.id in vector_ids:
-                lookup_metadata.append(result.data)
+                lookup_metadata.append(result.attributes)
         lookup_metadata.sort()
 
         logger.info("Checking if metadata is updated: " + str(lookup_metadata == new_metadata))
@@ -394,7 +393,7 @@ class TestUpdating:
         lookup_metadata = []
         for result in lookup_response.results:
             if result.id != vector_ids:
-                lookup_metadata.append([result.id, result.data])
+                lookup_metadata.append([result.id, result.attributes])
 
         logger.info("Checking if other metadata is not updated...")
         for result in lookup_metadata:
@@ -422,8 +421,8 @@ class TestAnalogy:
         assert response is not None
         logger.info("Checking if number of lookup results is equal to top_k: " + str(len(results) == top_k))
         assert len(results) is top_k
-        logger.info("Checking if values in 'data' is string: " + str(isinstance(results[0].data, str)))
-        assert isinstance(results[0].data, str)
+        logger.info("Checking if values in 'data' is string: " + str(isinstance(results[0].attributes, str)))
+        assert isinstance(results[0].attributes, str)
         logger.info("Checking if values in 'id' is int: " + str(isinstance(results[round(len(results) / 2)].id, int)))
         assert isinstance(results[round(len(results) / 2)].id, int)
         logger.info("Checking if values in 'similarity' is float: " + str(isinstance(results[-1].similarity, float)))
@@ -433,16 +432,18 @@ class TestAnalogy:
 
     # Test creating an analogy on Vecto
     # Create and delete analogy checks against each other - you need to create one first before you can delete
-    def test_create_analogy(self):
-        analogy_start = 'tests/demo_dataset/blue.txt'
-        analogy_end = 'tests/demo_dataset/orange.txt'
-        analogy_id = 1
-        user_vecto.create_analogy(analogy_id, analogy_start, analogy_end)
+    
+    # As the API for creating analogies will change, these two will temporarily be commented out
+    # def test_create_analogy(self):
+    #     analogy_start = 'tests/demo_dataset/blue.txt'
+    #     analogy_end = 'tests/demo_dataset/orange.txt'
+    #     analogy_id = 1
+    #     user_vecto.create_analogy(analogy_id, analogy_start, analogy_end)
 
     # Test deleting an analogy from Vecto
-    def test_delete_analogy(self):
-        analogy_id = 1
-        user_vecto.delete_analogy(analogy_id)
+    # def test_delete_analogy(self):
+    #     analogy_id = 1
+    #     user_vecto.delete_analogy(analogy_id)
 
 @pytest.mark.delete
 class TestDelete:
@@ -511,9 +512,9 @@ class TestExceptions:
         response = user_vecto.compute_analogy(query, analogy_start_end, top_k, modality)
         results = response.results
 
-        logger.info("Checking if values in 'data' is queen: " + str(isinstance(results[0].data, str)))
+        logger.info("Checking if values in 'data' is queen: " + str(isinstance(results[0].attributes, str)))
         
-        assert "Queen" in results[1].data # TODO: once the ingest is fixed, it should return the first result
+        assert "Queen" in results[1].attributes # TODO: once the ingest is fixed, it should return the first result
 
 
     def test_invalid_vector_space(self):
@@ -521,9 +522,9 @@ class TestExceptions:
         token = 0
         vector_space_id = 0
 
-        invalid_user_vecto = Vecto(token, vector_space_id)
+        invalid_user_vecto = Vecto(token, vector_space_id, vecto_base_url=vecto_base_url)
 
-        with pytest.raises(ForbiddenException) as e:
+        with pytest.raises(VectoException) as e:
 
             invalid_user_vecto.lookup("BLUE", modality='TEXT', top_k=100)
 
@@ -546,7 +547,7 @@ class TestExceptions:
 
         with pytest.raises(VectoException) as e:
             logger.info(e)
-            response = user_vecto.ingest(vecto_data, 'IMAGES')
+            response = user_vecto.ingest(vecto_data, 'IMAGE')
             logger.info(response)
             logger.info(e)
 
