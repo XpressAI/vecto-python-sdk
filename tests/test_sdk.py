@@ -22,8 +22,9 @@ import pytest
 import json
 
 '''
-Please update token, vecto_base_url and vector_space_id in *vecto_config.env*
-before running `pytest test_user.py` in terminal
+Please ensure that you have token, vecto_base_url and vector_space_id
+either using vecto_config.env or exporting them before 
+running `pytest test_sdk.py` in terminal
 
 You can choose a different seed in test_util.py
 
@@ -61,13 +62,13 @@ class TestIngesting:
     # Test ingesting one image into Vecto
     def test_ingest_single_image(self):
         image = TestDataset.get_random_image()
-        metadata = TestDataset.get_image_metadata(image)
-        response = vecto_toolbelt.ingest_image(user_vecto, image, metadata['data'])
+        attribute = TestDataset.get_image_attribute(image)
+        response = vecto_toolbelt.ingest_image(user_vecto, image, attribute['data'])
 
         assert response is not None
 
         results = response.ids
-        user_db_twin.update_database(results, metadata['data'])
+        user_db_twin.update_database(results, attribute['data'])
         ref_db = user_db_twin.get_database()
 
 
@@ -83,10 +84,10 @@ class TestIngesting:
     def test_ingest_image(self):
         
         batch = TestDataset.get_image_dataset()[:5]
-        metadata = TestDataset.get_image_metadata(batch)
-        response = vecto_toolbelt.ingest_image(user_vecto, batch, metadata['data'])
+        attribute = TestDataset.get_image_attribute(batch)
+        response = vecto_toolbelt.ingest_image(user_vecto, batch, attribute['data'])
         results = response.ids
-        user_db_twin.update_database(results, metadata['data'])
+        user_db_twin.update_database(results, attribute['data'])
         ref_db = user_db_twin.get_database()
         
         assert response is not None
@@ -142,11 +143,11 @@ class TestIngesting:
     def test_ingest_single_text(self):
         text = TestDataset.get_random_text(TestDataset.get_color_dataset)
         index = [0]
-        metadata = TestDataset.get_text_metadata(index, text)
-        response = vecto_toolbelt.ingest_text(user_vecto, text, metadata)
+        attribute = TestDataset.get_text_attribute(index, text)
+        response = vecto_toolbelt.ingest_text(user_vecto, text, attribute)
         results = response.ids
 
-        user_db_twin.update_database(results, metadata)
+        user_db_twin.update_database(results, attribute)
         ref_db = user_db_twin.get_database()
         
         logger.info(response)
@@ -161,10 +162,10 @@ class TestIngesting:
     # Test ingesting multiple texts into Vecto
     def test_ingest_text(self):
         batch = TestDataset.get_color_dataset()
-        metadata = TestDataset.get_text_metadata(batch.index.tolist()[:5], batch.tolist()[:5])
-        response = vecto_toolbelt.ingest_text(user_vecto, batch.tolist()[:5], metadata)
+        attribute = TestDataset.get_text_attribute(batch.index.tolist()[:5], batch.tolist()[:5])
+        response = vecto_toolbelt.ingest_text(user_vecto, batch.tolist()[:5], attribute)
         results = response.ids
-        user_db_twin.update_database(results, metadata)
+        user_db_twin.update_database(results, attribute)
         ref_db = user_db_twin.get_database()
         
         logger.info(response)
@@ -321,17 +322,17 @@ class TestUpdating:
         for file in updated_vector:
             file['data'].close()
 
-    # Test updating metadata of a vector embedding on Vecto
-    def test_update_single_vector_metadata(self):
+    # Test updating attribute of a vector embedding on Vecto
+    def test_update_single_vector_attribute(self):
         vector_id = random.randrange(0, 10)
-        new_metadata = 'new_metadata'
+        new_attribute = 'new_attribute'
 
-        updated_metadata = [{
+        updated_attribute = [{
             'id': vector_id,
-            'attributes': json.dumps(new_metadata),
+            'attributes': json.dumps(new_attribute),
         }]
 
-        user_vecto.update_vector_metadata(updated_metadata)
+        user_vecto.update_vector_attribute(updated_attribute)
         ref_db = user_db_twin.get_database()
 
         # Just a dummy lookup to return the specified ID - check specific entry
@@ -339,79 +340,79 @@ class TestUpdating:
         lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=1, ids=vector_id)
         results = lookup_response.results[0]
 
-        logger.info("Checking if metadata is updated: " + str(results.attributes == new_metadata))
-        assert results.attributes == new_metadata
+        logger.info("Checking if attribute is updated: " + str(results.attributes == new_attribute))
+        assert results.attributes == new_attribute
 
         # Just a dummy lookup to return all the data in the vector space - check other entries
         f = io.StringIO('blue')
         lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
-        lookup_metadata = []
+        lookup_attribute = []
 
         #need to iterate though this object
         for result in lookup_response.results:
             if result.id != vector_id:
-                lookup_metadata.append([result.id, result.attributes])
-        logger.info("Checking if other metadata is not updated...")
-        for result in lookup_metadata:
+                lookup_attribute.append([result.id, result.attributes])
+        logger.info("Checking if other attribute is not updated...")
+        for result in lookup_attribute:
             id = result[0]
-            metadata = result[1]
-            assert metadata == ref_db.iloc[id]['metadata']
-        logger.info("All other metadata unchanged.")
+            attribute = result[1]
+            assert attribute == ref_db.iloc[id]['attribute']
+        logger.info("All other attribute unchanged.")
 
-    # Test updating metadata of multiple vector embeddings on Vecto
-    def test_update_vector_metadata(self):
+    # Test updating attribute of multiple vector embeddings on Vecto
+    def test_update_vector_attribute(self):
         batch_len = 3
         vector_ids = random.sample(range(10), batch_len)
-        new_metadata = ['new_metadata_{}'.format(i) for i in range(batch_len)]
+        new_attribute = ['new_attribute_{}'.format(i) for i in range(batch_len)]
 
-        updated_metadata = []
+        updated_attribute = []
         
-        for metadata, vector_id in zip(new_metadata, vector_ids):
-            updated_metadata.append({
+        for attribute, vector_id in zip(new_attribute, vector_ids):
+            updated_attribute.append({
             'id': vector_id,
-            'attributes': json.dumps(metadata)
+            'attributes': json.dumps(attribute)
         })
 
-        user_vecto.update_vector_metadata(updated_metadata)
+        user_vecto.update_vector_attribute(updated_attribute)
         ref_db = user_db_twin.get_database()
         
         # Just a dummy lookup to return all the data in the vector space - check other entries
         f = io.StringIO('blue')
         lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=batch_len, ids=vector_ids).results
-        lookup_metadata = []
+        lookup_attribute = []
         for result in lookup_response:
             if result.id in vector_ids:
-                lookup_metadata.append(result.attributes)
-        lookup_metadata.sort()
+                lookup_attribute.append(result.attributes)
+        lookup_attribute.sort()
 
-        logger.info("Checking if metadata is updated: " + str(lookup_metadata == new_metadata))
-        assert lookup_metadata == new_metadata
+        logger.info("Checking if attribute is updated: " + str(lookup_attribute == new_attribute))
+        assert lookup_attribute == new_attribute
 
         # Just a dummy lookup to return all the data in the vector space - check other entries
         f = io.StringIO('blue')
         lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
-        lookup_metadata = []
+        lookup_attribute = []
         for result in lookup_response.results:
             if result.id != vector_ids:
-                lookup_metadata.append([result.id, result.attributes])
+                lookup_attribute.append([result.id, result.attributes])
 
-        logger.info("Checking if other metadata is not updated...")
-        for result in lookup_metadata:
+        logger.info("Checking if other attribute is not updated...")
+        for result in lookup_attribute:
             id = result[0]
             if id not in vector_ids:
-                metadata = result[1]
-                assert metadata == ref_db.iloc[id].metadata
-        logger.info("All other metadata unchanged.")
+                attribute = result[1]
+                assert attribute == ref_db.iloc[id].attribute
+        logger.info("All other attribute unchanged.")
     
 @pytest.mark.analogy
 class TestAnalogy:
     
     # Test getting an analogy from Vecto
     def test_compute_analogy(self): # can be text or images
-        query = 'tests/demo_dataset/navy.txt'
+        query = 'navy'
         analogy_start_end = {
-            'start': 'tests/demo_dataset/blue.txt',
-            'end': 'tests/demo_dataset/orange.txt'
+            'start': io.StringIO('blue'),
+            'end': io.StringIO('orange')
         }
         top_k = 10
         modality = 'TEXT'

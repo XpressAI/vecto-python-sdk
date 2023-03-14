@@ -117,13 +117,13 @@ class TestDataset:
         return [random_text]
 
     @classmethod
-    def get_image_metadata(cls, batch_path_list) -> dict:
-        """Computes the metadata that is done in ingest_image.
+    def get_image_attribute(cls, batch_path_list) -> dict:
+        """Computes the attribute that is done in ingest_image.
 
         Args: None
 
         Returns: 
-            dict: the metadata
+            dict: the attribute
         """
         data = {'vector_space_id': vector_space_id, 'data': [], 'modality': 'IMAGE'}
         files = []
@@ -139,13 +139,13 @@ class TestDataset:
         return data
 
     @classmethod
-    def get_text_metadata(cls, batch_text_list:list, batch_index_list:list) -> dict:
-        """Computes the metadata that is done in ingest_text.
+    def get_text_attribute(cls, batch_text_list:list, batch_index_list:list) -> dict:
+        """Computes the attribute that is done in ingest_text.
 
         Args: None
 
         Returns: 
-            dict: the metadata
+            dict: the attribute
         """
         data = []
 
@@ -165,18 +165,18 @@ class DatabaseTwin:
         self.ref_db = []
         self.deleted_ids = []
 
-    def update_database(self, results, metadata) -> None:
+    def update_database(self, results, attribute) -> None:
         """A function to update the database twin with new entries, 
         which will be used to check if Vecto ingested the entries correctly.
 
         Args:
             results (list): A list of vector ids ingested into Vecto
-            metadata (list): A list of vector metadata
+            attribute (list): A list of vector attribute
 
         Returns: None
         """
 
-        for id, path in zip(results, metadata):
+        for id, path in zip(results, attribute):
             self.ref_db.append([id, path])
 
     def get_database(self) -> pd.DataFrame:
@@ -188,7 +188,7 @@ class DatabaseTwin:
         Returns:
             DataFrame: A Pandas dataframe
         """
-        ref_df = pd.DataFrame(self.ref_db, columns=['id', 'metadata'])
+        ref_df = pd.DataFrame(self.ref_db, columns=['id', 'attribute'])
         
         return ref_df
 

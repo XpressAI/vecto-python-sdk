@@ -32,7 +32,7 @@ else:
 class VectoIngestData(TypedDict):
     '''A named tuple that contains the expected Vecto input format.
     For data, you may use open(path, 'rb') for IMAGE queries or io.StringIO(text) for TEXT queries.
-    You may append as many metadata to attributes as needed.'''
+    You may append as many attribute to attributes as needed.'''
     data: IO
     attributes: dict
 
@@ -43,9 +43,9 @@ class VectoEmbeddingData(TypedDict):
     id: int
     data: IO
 
-class VectoMetadata(TypedDict):
-    '''A named tuple that contains the expected Vecto metadata format for updating.
-    You may append as many metadata to attributes as needed'''
+class VectoAttribute(TypedDict):
+    '''A named tuple that contains the expected Vecto attribute format for updating.
+    You may append as many attribute to attributes as needed'''
     id: int
     attributes: dict
 
@@ -181,9 +181,9 @@ class Vecto():
             raise InvalidModality()
 
         files = [('input', ('_', r['data'], '_')) for r in ingest_data]
-        metadata = [json.dumps(r['attributes']) for r in ingest_data]
+        attribute = [json.dumps(r['attributes']) for r in ingest_data]
         
-        data = {'attributes': metadata, 'modality': modality}
+        data = {'attributes': attribute, 'modality': modality}
 
         response = self._client.post(('/api/v0/space/%s/index' % self.vector_space_id), data, files, kwargs)
 
@@ -252,24 +252,24 @@ class Vecto():
         return response
 
 
-    def update_vector_metadata(self, update_metadata: Union[VectoMetadata, List[VectoMetadata]], **kwargs) -> object:
-        '''A function to update current vector metadata with new one.
+    def update_vector_attribute(self, update_attribute: Union[VectoAttribute, List[VectoAttribute]], **kwargs) -> object:
+        '''A function to update current vector attribute with new one.
 
         Args:
-            update_metadata (VectoMetadata or list of VectoMetadata) : metadata to be updated.
+            update_attribute (VectoAttribute or list of VectoAttribute) : attribute to be updated.
             **kwargs: Other keyword arguments for clients other than `requests`
 
         '''
 
-        if type(update_metadata) != list:
-            update_metadata = [update_metadata]
+        if type(update_attribute) != list:
+            update_attribute = [update_attribute]
 
-        vector_ids = [(r['id']) for r in update_metadata]
-        new_metadata = [( r['attributes']) for r in update_metadata]
+        vector_ids = [(r['id']) for r in update_attribute]
+        new_attribute = [( r['attributes']) for r in update_attribute]
 
         data = MultipartEncoder(fields=[('vector_space_id', str(self.vector_space_id))] + 
                                             [('id', str(id)) for id in vector_ids] + 
-                                            [('attributes', md) for md in new_metadata])
+                                            [('attributes', md) for md in new_attribute])
 
         self._client.post_form(('/api/v0/space/%s/update/attributes' % self.vector_space_id), data, kwargs)
 
@@ -344,7 +344,7 @@ class Vecto():
         analogy_fields = self.build_analogy_query(init_analogy_fields, query, start, end)
         
         data = MultipartEncoder(fields=analogy_fields)
-                
+
         response = self._client.post_form(('/api/v0/space/%s/analogy' % self.vector_space_id), data, kwargs)
         
         return LookupResponse(results=[LookupResult(**r) for r in response.json()['results']])
