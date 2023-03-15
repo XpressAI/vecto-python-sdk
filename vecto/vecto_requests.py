@@ -32,7 +32,7 @@ else:
 class VectoIngestData(TypedDict):
     '''A named tuple that contains the expected Vecto input format.
     For data, you may use open(path, 'rb') for IMAGE queries or io.StringIO(text) for TEXT queries.
-    You may append as many metadata to attributes as needed.'''
+    You may append as many attribute to attributes as needed.'''
     data: IO
     attributes: dict
 
@@ -43,9 +43,9 @@ class VectoEmbeddingData(TypedDict):
     id: int
     data: IO
 
-class VectoMetadata(TypedDict):
-    '''A named tuple that contains the expected Vecto metadata format for updating.
-    You may append as many metadata to attributes as needed'''
+class VectoAttribute(TypedDict):
+    '''A named tuple that contains the expected Vecto attribute format for updating.
+    You may append as many attribute to attributes as needed'''
     id: int
     attributes: dict
 
@@ -60,8 +60,8 @@ class IngestResponse(NamedTuple):
     ids: List[int]
 
 class LookupResult(NamedTuple):
-    '''A named tuple that contains the lookup result content: data (metadata), id, and similarity.'''
-    data: object
+    '''A named tuple that contains the lookup result content: attributes, id, and similarity.'''
+    attributes: object
     id: int
     similarity: float
 
@@ -78,7 +78,7 @@ class Client:
     def post(self, url, data, files, kwargs=None):
 
         self.validate_input(url=url, data=data, files=files)
-
+        
         headers = {"Authorization": "Bearer %s" % self.token}
         response = self.client.post("%s/%s" % (self.vecto_base_url, url),
                                         data=data,
@@ -181,11 +181,11 @@ class Vecto():
             raise InvalidModality()
 
         files = [('input', ('_', r['data'], '_')) for r in ingest_data]
-        metadata = [json.dumps(r['attributes']) for r in ingest_data]
+        attribute = [json.dumps(r['attributes']) for r in ingest_data]
         
-        data = {'vector_space_id': self.vector_space_id, 'data': metadata, 'modality': modality}
+        data = {'attributes': attribute, 'modality': modality}
 
-        response = self._client.post('/api/v0/index', data, files, kwargs)
+        response = self._client.post(('/api/v0/space/%s/index' % self.vector_space_id), data, files, kwargs)
 
         return IngestResponse(response.json()['ids'])
 
@@ -212,9 +212,9 @@ class Vecto():
         if modality != 'IMAGE' and modality != 'TEXT':
             raise InvalidModality()
 
-        data={'vector_space_id': self.vector_space_id, 'modality': modality, 'top_k': top_k, 'ids': ids}
+        data={'modality': modality, 'top_k': top_k, 'ids': ids}
         files={'query': query}
-        response = self._client.post('/api/v0/lookup', data, files, kwargs)
+        response = self._client.post(('/api/v0/space/%s/lookup' % self.vector_space_id), data, files, kwargs)
         
         if not response.json()['results']:
             return  LookupResponse(results=[])
@@ -247,31 +247,31 @@ class Vecto():
         files = [('input', ('_', r['data'], '_')) for r in embedding_data]
 
         data={'vector_space_id': self.vector_space_id, 'id': vector_id, 'modality': modality}
-        response = self._client.post('/api/v0/update/vectors', data, files, kwargs) 
+        response = self._client.post(('/api/v0/space/%s/update/vectors' % self.vector_space_id), data, files, kwargs) 
 
         return response
 
 
-    def update_vector_metadata(self, update_metadata: Union[VectoMetadata, List[VectoMetadata]], **kwargs) -> object:
-        '''A function to update current vector metadata with new one.
+    def update_vector_attribute(self, update_attribute: Union[VectoAttribute, List[VectoAttribute]], **kwargs) -> object:
+        '''A function to update current vector attribute with new one.
 
         Args:
-            update_metadata (VectoMetadata or list of VectoMetadata) : metadata to be updated.
+            update_attribute (VectoAttribute or list of VectoAttribute) : attribute to be updated.
             **kwargs: Other keyword arguments for clients other than `requests`
 
         '''
 
-        if type(update_metadata) != list:
-            update_metadata = [update_metadata]
+        if type(update_attribute) != list:
+            update_attribute = [update_attribute]
 
-        vector_ids = [(r['id']) for r in update_metadata]
-        new_metadata = [( r['attribute']) for r in update_metadata]
+        vector_ids = [(r['id']) for r in update_attribute]
+        new_attribute = [( r['attributes']) for r in update_attribute]
 
         data = MultipartEncoder(fields=[('vector_space_id', str(self.vector_space_id))] + 
                                             [('id', str(id)) for id in vector_ids] + 
-                                            [('metadata', md) for md in new_metadata])
+                                            [('attributes', md) for md in new_attribute])
 
-        self._client.post_form('/api/v0/update/metadata', data, kwargs)
+        self._client.post_form(('/api/v0/space/%s/update/attributes' % self.vector_space_id), data, kwargs)
 
     ###########
     # Analogy #
@@ -292,8 +292,8 @@ class Vecto():
         Sample output:
         [('vector_space_id', '28148'), ('top_k', '20'), ('modality', 'TEXT'),
          ('query', ('_', 'King')), 
-         ('from', ('_', 'Male')), ('to', ('_', 'Female')), 
-         ('from', ('_', 'Husband')), ('to', ('_', 'Wife'))]
+         ('start', ('_', 'Male')), ('end', ('_', 'Female')), 
+         ('start', ('_', 'Husband')), ('end', ('_', 'Wife'))]
         '''
         analogy_fields.extend(self.multipartencoder_query_builder("query", query))
 
@@ -306,8 +306,8 @@ class Vecto():
 
         for start, end in zip(start, end):
             
-            analogy_fields.extend(self.multipartencoder_query_builder("from", start))
-            analogy_fields.extend(self.multipartencoder_query_builder("to", end))
+            analogy_fields.extend(self.multipartencoder_query_builder("start", start))
+            analogy_fields.extend(self.multipartencoder_query_builder("end", end))
 
         return analogy_fields
 
@@ -344,8 +344,8 @@ class Vecto():
         analogy_fields = self.build_analogy_query(init_analogy_fields, query, start, end)
         
         data = MultipartEncoder(fields=analogy_fields)
-                
-        response = self._client.post_form('/api/v0/analogy', data, kwargs)
+
+        response = self._client.post_form(('/api/v0/space/%s/analogy' % self.vector_space_id), data, kwargs)
         
         return LookupResponse(results=[LookupResult(**r) for r in response.json()['results']])
 
@@ -393,7 +393,7 @@ class Vecto():
 
         return response
 
-    def create_analogy(self, analogy_id:int, start:str, end:str, **kwargs) -> object:
+    def create_analogy(self, start:str, end:str, **kwargs) -> object:
         '''A function to create an analogy and store in Vecto.
         It is also possible to do multiple analogies in one request body.
 
@@ -406,14 +406,15 @@ class Vecto():
         Returns:
             dict: Client response body
         '''
-
+        # import pdb; pdb.set_trace()
+        
         data = MultipartEncoder(fields=[
-            ('vector_space_id', str(self.vector_space_id)), ('analogy_id', str(analogy_id)), ('modality', 'TEXT'),
-            ('from', ('_', open(start, 'rb'))),
-            ('to', ('_', open(end, 'rb'))), 
+            ('modality', 'TEXT'),
+            ('start', ('_', open(start, 'rb'))),
+            ('end', ('_', open(end, 'rb'))), 
         ])
 
-        self._client.post_form('/api/v0/analogy/create', data, kwargs)
+        self._client.post_form(('/api/v0/space/%s/analogy' % self.vector_space_id), data, kwargs)
 
 
     def delete_analogy(self, analogy_id:int, **kwargs) -> object:
@@ -427,7 +428,7 @@ class Vecto():
             dict: Client response body
         '''
         data = MultipartEncoder(fields={'vector_space_id': str(self.vector_space_id), 'analogy_id': str(analogy_id)})
-        self._client.post_form('/api/v0/analogy/delete', data, kwargs)
+        self._client.post_form(('/api/v0/space/%s/analogy/delete' % self.vector_space_id), data, kwargs)
 
     # Delete
 
@@ -443,7 +444,7 @@ class Vecto():
         '''
 
         data = MultipartEncoder(fields=[('vector_space_id', str(self.vector_space_id))] + [('id', str(id)) for id in vector_ids])
-        response = self._client.post_form('/api/v0/delete', data, kwargs)
+        response = self._client.post_form(('/api/v0/space/%s/delete' % self.vector_space_id), data, kwargs)
         
 
     def delete_vector_space_entries(self, **kwargs) -> object:
@@ -458,4 +459,4 @@ class Vecto():
         '''
 
         data = MultipartEncoder({'vector_space_id': str(self.vector_space_id)})
-        self._client.post_form('/api/v0/delete_all', data, kwargs)
+        self._client.post_form(('/api/v0/space/%s/delete_all' % self.vector_space_id), data, kwargs)
