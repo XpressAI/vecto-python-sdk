@@ -3,13 +3,24 @@
 <img src="https://user-images.githubusercontent.com/68586800/192857099-499146bb-5570-4702-a88f-bb4582e940c0.png" width="300"/>
 </a>
 </p>
+<p align="center">
+  <a href="https://docs.vecto.ai/docs/">Docs</a> •
+  <a href="https://www.xpress.ai/blog/">Blog</a> •
+  <a href="https://discord.com/invite/vgEg2ZtxCw">Discord</a>
+<br>
 
 # Vecto Python SDK
+Official Python SDK for [Vecto](https://www.vecto.ai/), the database software that puts intelligent search and powerful models at your fingertips, allowing you to leverage the full potential of AI in mere minutes. 
 
-## Building the Wheel and Installation
-Run `python setup.py bdist_wheel --universal` to create a .whl file in the dist folder.
+## Installation
 
-You can install that wheel file with `pip install dist/vecto-*.whl` into your current environment (if the file is in the current working directory).
+```
+pip install vecto-sdk
+```
+
+
+## Building the Wheel
+If you would like to build your own wheel, run `python setup.py bdist_wheel --universal` which creates a .whl file in the dist folder. You can install that wheel file with `pip install dist/vecto-*.whl` into your current environment (if the file is in the current working directory).
     
 ## Sample Usage
 
@@ -19,6 +30,9 @@ vs = Vecto(token="YOUR_TOKEN", vector_space_id=YOUR_ID)
 
 vs.lookup("Blue", "TEXT", top_k=5)
 ```
+
+Sign up for your access [here](https://www.vecto.ai/contactus). 
+
 
 ## Available Functions
 
@@ -57,3 +71,6 @@ We've setup an [action](https://github.com/XpressAI/vecto-python-sdk/actions/wor
 ```
 pytest tests/test_sdk.py
 ```
+
+## Developers Discord
+Have any questions? Feel free to chat with the devs at our [Discord](https://discord.com/invite/vgEg2ZtxCw)!
