@@ -3,6 +3,8 @@ name: Run API Tests
 on:
   release:
     types: [created]
+  pull_request:
+    branches: "*"
   workflow_dispatch:
     branches: "*"  
     
@@ -33,6 +35,8 @@ jobs:
       env:
         vector_space_id : ${{ secrets.VECTOR_SPACE_ID }}
         user_token: ${{ secrets.USER_TOKEN }}
+        vector_base_url:  ${{ secrets.VECTO_BASE_URL }}
+
       run: |
         pytest tests/test_sdk.py
 

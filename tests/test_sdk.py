@@ -409,7 +409,7 @@ class TestAnalogy:
     
     # Test getting an analogy from Vecto
     def test_compute_analogy(self): # can be text or images
-        query = 'navy'
+        query = io.StringIO('navy')
         analogy_start_end = {
             'start': io.StringIO('blue'),
             'end': io.StringIO('orange')

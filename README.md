@@ -41,9 +41,8 @@ vs.lookup("Blue", "TEXT", top_k=5)
     update_vector_attribute
         update current vector attribute with new one.
 
-    get_analogy
-        get an analogy from Vecto.
-        It is also possible to do multiple analogies in one request body.
+    compute_analogy
+        compute an analogy from Vecto.
 
     delete_vector_embeddings
         delete vector embeddings that is stored in Vecto.
