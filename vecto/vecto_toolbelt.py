@@ -1,15 +1,18 @@
 from .vecto_requests import Vecto, IngestResponse
 import math
-from tqdm import tqdm
 import io
 from typing import List, Union
 
+try:
+    from tqdm import tqdm
+    progress_bar = True
+except ImportError:
+    progress_bar = False
 
 def batch(input_list: list, batch_size:int):
     batch_count = math.ceil(len(input_list) / batch_size)
     for i in range(batch_count):
         yield input_list[i * batch_size : (i+1) * batch_size]
-
 
 def ingest_image(vs:Vecto, batch_path_list:Union[str, list], attribute_list:Union[str, list], **kwargs) -> IngestResponse:
     """A function that accepts a str or list of image paths and their attribute, formats it 
@@ -66,12 +69,10 @@ def ingest_all_images(vs:Vecto, path_list:list, attribute_list:list, batch_size:
 
     ingest_ids = []
 
-    for path_batch, attribute_batch in tqdm(zip(path_batches, attribute_batches), total = batch_count):
-        
+    for path_batch, attribute_batch in (tqdm(zip(path_batches, attribute_batches), total=batch_count) if progress_bar else zip(path_batches, attribute_batches)):
         try:
             ids = ingest_image(vs, path_batch, attribute_batch)
             ingest_ids.append(ids)
-
         except:
             print("Error in ingesting:\n", path_batch)
 
@@ -129,8 +130,11 @@ def ingest_all_text(vs:Vecto, text_list:list, attribute_list:list, batch_size=64
     attribute_batches = batch(attribute_list, batch_size)
     ingest_ids = []
 
-    for text_batch, attribute_batch in tqdm(zip(text_batches,attribute_batches), total = batch_count):
-        ids = ingest_text(vs, text_batch, attribute_batch)
-        ingest_ids.append(ids)
+    for path_batch, attribute_batch in (tqdm(zip(text_batches, attribute_batches), total=batch_count) if progress_bar else zip(text_batches, attribute_batches)):
+        try:
+            ids = ingest_text(vs, path_batch, attribute_batch)
+            ingest_ids.append(ids)
+        except:
+            print("Error in ingesting:\n", path_batch)
 
     return ingest_ids
