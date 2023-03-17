@@ -5,8 +5,6 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ master ]
-  workflow_dispatch:
-    branches: "*"  
 
 jobs:
   deploy:
@@ -16,7 +14,17 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.6'
+        python-version: '3.6.8'
+
+    - name: Set Branch Name
+      run: |
+        echo "branch_name=${GITHUB_HEAD_REF##*/}" >> $GITHUB_ENV
+    - name: Check Branch
+      run: echo "$env.branch_name"
+
+    - name: Get Hash
+      id: hash
+      run: echo "git_hash=$(git rev-parse --short "$GITHUB_SHA")" >> $GITHUB_ENV
 
     - name: Build wheel
       run: |
@@ -27,5 +35,5 @@ jobs:
     - name: Upload Artifacts
       uses: actions/upload-artifact@v2
       with:
-        name: vecto-wheel
+        name: vecto-wheel-${{ env.branch_name }}-${{ env.git_hash }}
         path: dist
