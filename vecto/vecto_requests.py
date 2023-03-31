@@ -16,6 +16,8 @@
 import requests
 from requests_toolbelt import MultipartEncoder
 import json
+import math
+import io
 
 from typing import IO, List, Union, NamedTuple
 from .exceptions import ( VectoException, UnauthorizedException, UnpairedAnalogy, 
@@ -460,3 +462,152 @@ class Vecto():
 
         data = MultipartEncoder({'vector_space_id': str(self.vector_space_id)})
         self._client.post_form(('/api/v0/space/%s/delete_all' % self.vector_space_id), data, kwargs)
+
+
+    # Toolbelt Utils
+
+    try:
+        from tqdm import tqdm
+        progress_bar = True
+    except ImportError:
+        progress_bar = False
+
+    @classmethod
+    def custom_progress_bar(self, iterable, desc=None, total=None, progress_bar=False):
+        if progress_bar:
+            return tqdm(iterable, desc=desc, total=total)
+        else:
+            return iterable
+
+    @classmethod
+    def batch(self, input_list: list, batch_size:int):
+        
+        batch_count = math.ceil(len(input_list) / batch_size)
+        for i in range(batch_count):
+            yield input_list[i * batch_size : (i+1) * batch_size]
+
+
+    def ingest_image(self, batch_path_list:Union[str, list], attribute_list:Union[str, list], **kwargs) -> IngestResponse:
+        """A function that accepts a str or list of image paths and their attribute, formats it 
+        in a list of dicts to be accepted by the ingest function. 
+
+        Args:
+            batch_path_list (str or list): Str or list of image paths.
+            attribute_list (str or list): Str or list of image attribute.
+            **kwargs: Other keyword arguments for clients other than `requests`
+
+        Returns:
+            IngestResponse: named tuple that contains the list of index of ingested objects.
+        """
+
+        if type(batch_path_list) != list:
+            batch_path_list = [batch_path_list]
+
+        if type(attribute_list) != list:
+            attribute_list = [attribute_list]
+
+        vecto_data = []
+            
+        for path, attribute in zip(batch_path_list, attribute_list):
+
+            data = {'data': open(path, 'rb'), 
+                    'attributes': attribute}
+
+            vecto_data.append(data)
+
+        response = self.ingest(vecto_data, "IMAGE")
+        
+        for data in vecto_data:
+            data['data'].close()
+
+        return response
+
+    def ingest_all_images(self, path_list:list, attribute_list:list, batch_size:int=64) -> List[IngestResponse]:
+        """A function that accepts a list of image paths and their attribute, then send them
+        to the ingest_image function in batches.
+
+        Args:
+            path_list (list): List of image paths.
+            attribute_list (list): List of image attribute.
+            batch_size (int): batch size of images to be sent at one request. Default 64.
+            **kwargs: Other keyword arguments for clients other than `requests`
+
+        Returns:
+            IngestResponse: named tuple that contains the list of index of ingested objects.
+        """
+        batch_count = math.ceil(len(path_list) / batch_size)
+
+        path_batches = self.batch(path_list, batch_size)
+        attribute_batches = self.batch(attribute_list, batch_size)
+
+        ingest_ids = []
+
+        for path_batch, attribute_batch in self.custom_progress_bar(zip(path_batches, attribute_batches), total=batch_count, progress_bar=progress_bar):
+            try:
+                ids = self.ingest_image(vs, path_batch, attribute_batch)
+                ingest_ids.append(ids)
+            except:
+                print("Error in ingesting:\n", path_batch)
+
+        return ingest_ids
+
+    def ingest_text(self, batch_text_list:Union[str, list], attribute_list:Union[str, list], **kwargs) -> IngestResponse:
+        """A function that accepts a str or list of text and their attribute, formats it 
+        in a list of dicts to be accepted by the ingest function. 
+
+        Args:
+            batch_text_list (str or list): Str or list of text.
+            attribute_list (str or list): Str or list of the text attribute.
+            **kwargs: Other keyword arguments for clients other than `requests`
+
+        Returns:
+            IngestResponse: named tuple that contains the list of index of ingested objects.
+        """
+
+        vecto_data = []
+
+        if type(batch_text_list) != list:
+            batch_text_list = [batch_text_list]
+
+        if type(attribute_list) != list:
+            attribute_list = [attribute_list]
+        
+        for text, attribute in zip(batch_text_list, attribute_list):
+
+            data = {'data': io.StringIO(str(text)),
+                    'attributes': attribute}
+
+            vecto_data.append(data)
+
+        response = self.ingest(vecto_data, "TEXT")
+
+        return response
+
+    def ingest_all_text(self, text_list:list, attribute_list:list, batch_size=64) -> List[IngestResponse]:
+        """A function that accepts a list of text and their attribute, then send them
+        to the ingest_text function in batches.
+
+        Args:
+            text_list (list): List of text paths.
+            attribute_list (list): List of text attribute.
+            batch_size (int): batch size of text to be sent at one request. Default 64.
+            **kwargs: Other keyword arguments for clients other than `requests`
+
+        Returns:
+            IngestResponse: named tuple that contains the list of index of ingested objects.
+        """
+        
+        batch_count = math.ceil(len(text_list) / batch_size)
+
+        text_batches = self.batch(text_list, batch_size)
+        attribute_batches = self.batch(attribute_list, batch_size)
+        ingest_ids = []
+
+        for path_batch, attribute_batch in (tqdm(zip(text_batches, attribute_batches), total=batch_count) if progress_bar else zip(text_batches, attribute_batches)):
+            try:
+                ids = self.ingest_text(vs, path_batch, attribute_batch)
+                ingest_ids.append(ids)
+            except:
+                print("Error in ingesting:\n", path_batch)
+
+        return ingest_ids

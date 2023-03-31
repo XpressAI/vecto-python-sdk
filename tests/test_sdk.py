@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import io
-from vecto import Vecto, vecto_toolbelt
+from vecto import Vecto
 from vecto.exceptions import VectoException, ForbiddenException, ServiceException
 from test_util import DatabaseTwin, TestDataset
 import random
@@ -63,7 +63,7 @@ class TestIngesting:
     def test_ingest_single_image(self):
         image = TestDataset.get_random_image()
         attribute = TestDataset.get_image_attribute(image)
-        response = vecto_toolbelt.ingest_image(user_vecto, image, attribute['data'])
+        response = user_vecto.ingest_image(image, attribute['data'])
 
         assert response is not None
 
@@ -85,7 +85,7 @@ class TestIngesting:
         
         batch = TestDataset.get_image_dataset()[:5]
         attribute = TestDataset.get_image_attribute(batch)
-        response = vecto_toolbelt.ingest_image(user_vecto, batch, attribute['data'])
+        response = user_vecto.ingest_image(batch, attribute['data'])
         results = response.ids
         user_db_twin.update_database(results, attribute['data'])
         ref_db = user_db_twin.get_database()
@@ -144,7 +144,7 @@ class TestIngesting:
         text = TestDataset.get_random_text(TestDataset.get_color_dataset)
         index = [0]
         attribute = TestDataset.get_text_attribute(index, text)
-        response = vecto_toolbelt.ingest_text(user_vecto, text, attribute)
+        response = user_vecto.ingest_text(text, attribute)
         results = response.ids
 
         user_db_twin.update_database(results, attribute)
@@ -163,7 +163,7 @@ class TestIngesting:
     def test_ingest_text(self):
         batch = TestDataset.get_color_dataset()
         attribute = TestDataset.get_text_attribute(batch.index.tolist()[:5], batch.tolist()[:5])
-        response = vecto_toolbelt.ingest_text(user_vecto, batch.tolist()[:5], attribute)
+        response = user_vecto.ingest_text(batch.tolist()[:5], attribute)
         results = response.ids
         user_db_twin.update_database(results, attribute)
         ref_db = user_db_twin.get_database()
@@ -493,7 +493,7 @@ class TestExceptions:
 
         user_vecto.delete_vector_space_entries()
         batch = TestDataset.get_profession_dataset()
-        response = vecto_toolbelt.ingest_text(user_vecto, batch, batch)
+        response = user_vecto.ingest_text(batch, batch)
         results = response.ids
         user_db_twin.update_database(results, batch)
 
