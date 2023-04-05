@@ -274,7 +274,6 @@ class TestLookup:
         
         with pytest.raises(TypeError):
             user_vecto.lookup_text(non_existing_path, top_k=5)
-            # user_vecto.lookup_text(non_existing_path, 5)
 
         logger.info("Checking that the method returns results when given a valid file path")
         query = TestDataset.get_random_text(TestDataset.get_color_dataset)[0]
@@ -286,6 +285,26 @@ class TestLookup:
         logger.info("Checking that the method returns results when given text data as a file-like object")
         f = io.StringIO('blue')
         assert user_vecto.lookup_text(f, 5) is not None
+
+
+    def test_lookup_image_from_url(self):
+
+        logger.info("Checking that the method returns results when given a valid image URL")
+        url = 'https://picsum.photos/300/200'
+        response = user_vecto.lookup_image_from_url(url, 5)
+        assert response is not None
+
+        from urllib.error import URLError
+
+        invalid_url = 'invalid://not-a-valid-url'
+        try:
+            user_vecto.lookup_image_from_url(invalid_url, 5)
+        
+        except URLError:
+            logger.info("URLError raised as expected")
+        else:
+            logger.error("Expected URLError not raised")
+
 
 @pytest.mark.update
 class TestUpdating:

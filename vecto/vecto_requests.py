@@ -225,6 +225,26 @@ class Vecto():
 
         return LookupResponse(results=[LookupResult(**r) for r in response.json()['results']])
 
+    def url_to_binary_stream(self, url: str) -> io.BytesIO:
+ 
+        from urllib.request import urlopen
+        from urllib.parse import urlparse
+
+        def is_url(s: str) -> bool:
+            try:
+                result = urlparse(s)
+                return all([result.scheme, result.netloc])
+            except ValueError:
+                return False
+
+        if is_url(url):
+            content = urlopen(url).read()
+            binary_stream = io.BytesIO(content)
+            return binary_stream
+        else:
+            raise ValueError(f'Invalid URL: {url}')
+
+
     def lookup_image(self, query:Union[str, IO, pathlib.Path, os.PathLike], top_k:int, ids:list=None, **kwargs) -> LookupResponse:
         '''A function to perform image search on Vecto.
 
@@ -251,6 +271,25 @@ class Vecto():
                 print(f"An error occurred: {e}")
     
         response = self.lookup(query, modality='IMAGE', top_k=top_k, ids=ids)
+
+        return response
+    
+    def lookup_image_from_url(self, query:str, top_k:int, ids:list=None, **kwargs) -> LookupResponse:
+        '''A function to perform image search on Vecto.
+
+        Args:
+            query (str): url str to an image resource
+            top_k (int): The number of results to return
+            ids (list): A list of vector ids to search on aka subset of vectors, defaults to None
+            **kwargs: Other keyword arguments for clients other than `requests`
+
+        Returns:
+            LookupResponse: named tuple that contains a list of LookupResult named tuples.            
+            where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+        '''
+
+        content = self.url_to_binary_stream(query)
+        response = self.lookup(content, modality='IMAGE', top_k=top_k, ids=ids)
 
         return response
     
