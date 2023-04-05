@@ -20,6 +20,7 @@ import random
 import logging
 import pytest
 import json
+import pathlib
 
 '''
 Please ensure that you have token, vecto_base_url and vector_space_id
@@ -188,7 +189,7 @@ class TestIngesting:
 class TestLookup:
     
     # Test doing lookup / search using text on Vecto
-    def test_lookup_text(self):
+    def test_lookup_on_text(self):
         f = io.StringIO('blue')
         response_k5 = user_vecto.lookup(f, modality='TEXT', top_k=5)
         results_k5 = response_k5.results
@@ -222,7 +223,7 @@ class TestLookup:
         assert isinstance(results_k100[-1].similarity, float)
     
     # Test doing lookup / search using image on Vecto
-    def test_lookup_image(self):
+    def test_lookup_on_image(self):
         query = TestDataset.get_random_image()[0]
         with open(query, 'rb') as f:
             response_k5 = user_vecto.lookup(f, modality='IMAGE', top_k=5)
@@ -251,6 +252,40 @@ class TestLookup:
         assert results_k100[round(len(results_k100) / 2)].id is not None
         logger.info("Checking if values in 'similarity' is float: " + str(isinstance(results_k100[-1].similarity, float)))
         assert isinstance(results_k100[-1].similarity, float) 
+
+
+    # Test using lookup_image and lookup_text on Vecto
+    def test_lookup_image(self):
+        query = TestDataset.get_random_image()[0]
+        logger.info("Checking that lookup_image can handle file paths")
+        assert user_vecto.lookup_image(query, 5) is not None
+        logger.info("Checking that lookup_image can handle binary input")
+        assert user_vecto.lookup_image(open(query, 'rb'), 5) is not None
+
+    def test_lookup_text(self):
+
+        logger.info("Checking that an exception is raised when query is an unsupported data type")
+        with pytest.raises(ValueError):
+            user_vecto.lookup_text(1234, 5)
+
+        logger.info("Checking that an exception is raised when the file path is invalid")
+
+        non_existing_path = pathlib.Path("non_existing_file.txt")
+        
+        with pytest.raises(TypeError):
+            user_vecto.lookup_text(non_existing_path, top_k=5)
+            # user_vecto.lookup_text(non_existing_path, 5)
+
+        logger.info("Checking that the method returns results when given a valid file path")
+        query = TestDataset.get_random_text(TestDataset.get_color_dataset)[0]
+        assert user_vecto.lookup_text(query, 5) is not None
+
+        logger.info("Checking that the method returns results when given text data as a string")
+        assert user_vecto.lookup_text('blue', 5) is not None
+
+        logger.info("Checking that the method returns results when given text data as a file-like object")
+        f = io.StringIO('blue')
+        assert user_vecto.lookup_text(f, 5) is not None
 
 @pytest.mark.update
 class TestUpdating:

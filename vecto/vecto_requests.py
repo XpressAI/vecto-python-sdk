@@ -18,6 +18,8 @@ from requests_toolbelt import MultipartEncoder
 import json
 import math
 import io
+import os
+import pathlib
 
 from typing import IO, List, Union, NamedTuple
 from .exceptions import ( VectoException, UnauthorizedException, UnpairedAnalogy, 
@@ -223,6 +225,76 @@ class Vecto():
 
         return LookupResponse(results=[LookupResult(**r) for r in response.json()['results']])
 
+    def lookup_image(self, query:Union[str, IO, pathlib.Path, os.PathLike], top_k:int, ids:list=None, **kwargs) -> LookupResponse:
+        '''A function to perform image search on Vecto.
+
+        Args:
+            query (Union[str, IO, pathlib.Path, os.PathLike]): 
+                A string, path-like object, or file-like object containing image data or path to an image data.
+                If `query` is a path-like object or file-like object, it will be opened in binary mode and read as image data.
+            top_k (int): The number of results to return
+            ids (list): A list of vector ids to search on aka subset of vectors, defaults to None
+            **kwargs: Other keyword arguments for clients other than `requests`
+
+        Returns:
+            LookupResponse: named tuple that contains a list of LookupResult named tuples.            
+            where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+        '''
+
+        if isinstance(query, (str, pathlib.Path, os.PathLike)):
+            try:
+                query = open(query, 'rb')
+
+            except FileNotFoundError:
+                print("The file was not found.")
+            except Exception as e:
+                print(f"An error occurred: {e}")
+    
+        response = self.lookup(query, modality='IMAGE', top_k=top_k, ids=ids)
+
+        return response
+    
+    def lookup_text(self, query:Union[str, IO, pathlib.Path, os.PathLike], top_k:int, ids:list=None, **kwargs) -> LookupResponse:
+        '''A function to perform text search on Vecto.
+
+        Args:
+            query (Union[str, IO, pathlib.Path, os.PathLike]): 
+                A string, path-like object, or file-like object containing text data to search.
+                If `query` is a path-like object or file-like object, it will be read as a text file.
+            top_k (int): The number of results to return
+            ids (list): A list of vector ids to search on aka subset of vectors, defaults to None
+            **kwargs: Other keyword arguments for clients other than `requests`
+
+        Returns:
+            LookupResponse: named tuple that contains a list of LookupResult named tuples.            
+            where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+        '''
+
+        if isinstance(query, (str, pathlib.Path, os.PathLike)):
+            try:
+                # Check if the object is path-like using os.fspath
+                if os.path.exists(str(query)):
+                    print("opening file")
+                    query = open(query, 'rb')
+                else:
+                    if isinstance(query, str):
+                        print("Treating " + query + " query as a string.")
+                        query = io.StringIO(query)
+                    else:
+                        print("File was not found")
+                        raise FileNotFoundError("The file was not found.")
+
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                    
+        else:
+            if not isinstance(query, io.TextIOBase):
+                raise ValueError("The input must be a string, path-like object or StringIO object.")
+
+        response = self.lookup(query, modality='TEXT', top_k=top_k, ids=ids)
+
+        return response
+    
     ##########
     # Update #
     ##########
@@ -408,7 +480,6 @@ class Vecto():
         Returns:
             dict: Client response body
         '''
-        # import pdb; pdb.set_trace()
         
         data = MultipartEncoder(fields=[
             ('modality', 'TEXT'),
@@ -463,8 +534,9 @@ class Vecto():
         data = MultipartEncoder({'vector_space_id': str(self.vector_space_id)})
         self._client.post_form(('/api/v0/space/%s/delete_all' % self.vector_space_id), data, kwargs)
 
-
-    # Toolbelt Utils
+    ##################
+    # Toolbelt Utils #
+    ##################
 
     try:
         from tqdm import tqdm
