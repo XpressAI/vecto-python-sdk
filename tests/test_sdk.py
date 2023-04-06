@@ -255,36 +255,17 @@ class TestLookup:
 
 
     # Test using lookup_image and lookup_text on Vecto
-    def test_lookup_image(self):
+    def test_lookup_image_from_filepath(self):
+
         query = TestDataset.get_random_image()[0]
-        logger.info("Checking that lookup_image can handle file paths")
-        assert user_vecto.lookup_image(query, 5) is not None
-        logger.info("Checking that lookup_image can handle binary input")
-        assert user_vecto.lookup_image(open(query, 'rb'), 5) is not None
+        logger.info("Checking that lookup_text_from_filepath can handle file paths")
+        assert user_vecto.lookup_image_from_filepath(query, 5) is not None
 
-    def test_lookup_text(self):
+        invalid_path = "/path/to/nonexistent/image.jpg"
+        logger.info("Checking that lookup_text_from_filepath correctly detects an incorrect file path")
 
-        logger.info("Checking that an exception is raised when query is an unsupported data type")
-        with pytest.raises(ValueError):
-            user_vecto.lookup_text(1234, 5)
-
-        logger.info("Checking that an exception is raised when the file path is invalid")
-
-        non_existing_path = pathlib.Path("non_existing_file.txt")
-        
-        with pytest.raises(TypeError):
-            user_vecto.lookup_text(non_existing_path, top_k=5)
-
-        logger.info("Checking that the method returns results when given a valid file path")
-        query = TestDataset.get_random_text(TestDataset.get_color_dataset)[0]
-        assert user_vecto.lookup_text(query, 5) is not None
-
-        logger.info("Checking that the method returns results when given text data as a string")
-        assert user_vecto.lookup_text('blue', 5) is not None
-
-        logger.info("Checking that the method returns results when given text data as a file-like object")
-        f = io.StringIO('blue')
-        assert user_vecto.lookup_text(f, 5) is not None
+        with pytest.raises(FileNotFoundError, match="The file was not found."):
+            user_vecto.lookup_image_from_filepath(invalid_path, 5)
 
 
     def test_lookup_image_from_url(self):
@@ -294,9 +275,10 @@ class TestLookup:
         response = user_vecto.lookup_image_from_url(url, 5)
         assert response is not None
 
+        logger.info("Checking that lookup_image_from_url correctly detects an invalid URL")
         from urllib.error import URLError
 
-        invalid_url = 'invalid://not-a-valid-url'
+        invalid_url = "http://invalid-url.example.com/image.jpg"
         try:
             user_vecto.lookup_image_from_url(invalid_url, 5)
         
@@ -304,6 +286,57 @@ class TestLookup:
             logger.info("URLError raised as expected")
         else:
             logger.error("Expected URLError not raised")
+
+    def test_lookup_image_from_binary(self):
+
+        logger.info("Checking that the method returns results when given text data as a file-like object")
+        query = TestDataset.get_random_image()[0]
+        with open(query, 'rb') as f:
+            assert user_vecto.lookup_image_from_binary(f, 5) is not None
+
+    def test_lookup_text_from_path(self):
+
+        logger.info("Checking that the method returns results when given a valid file path")
+        query = os.path.join("tests", "demo_dataset", "blue.txt")
+        assert user_vecto.lookup_text_from_filepath(query, 5) is not None
+
+        logger.info("Checking that an exception is raised when the file path is invalid")
+        non_existing_path = pathlib.Path("non_existing_file.txt")
+        
+        with pytest.raises(FileNotFoundError):
+            user_vecto.lookup_text_from_filepath(non_existing_path, top_k=5)
+
+    def test_lookup_text_from_str(self):
+
+        logger.info("Checking that the method returns results when given text data as a string")
+        assert user_vecto.lookup_text_from_str('blue', 5) is not None
+
+
+    def test_lookup_text_from_url(self):
+
+        logger.info("Checking that the method returns results when given a valid image URL")
+        url = 'https://raw.githubusercontent.com/XpressAI/vecto-python-sdk/main/tests/demo_dataset/blue.txt'
+        response = user_vecto.lookup_text_from_url(url, 5)
+        assert response is not None
+
+        logger.info("Checking that lookup_text_from_url correctly detects an invalid URL")
+        from urllib.error import URLError
+
+        invalid_url = "http://invalid-url.example.com/text.txt"
+        try:
+            user_vecto.lookup_text_from_url(invalid_url, 5)
+        
+        except URLError:
+            logger.info("URLError raised as expected")
+        else:
+            logger.error("Expected URLError not raised")
+
+
+    def test_lookup_text_from_binary(self):
+
+        logger.info("Checking that the method returns results when given text data as a file-like object")
+        f = io.StringIO('blue')
+        assert user_vecto.lookup_text_from_binary(f, 5) is not None
 
 
 @pytest.mark.update

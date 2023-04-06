@@ -243,39 +243,10 @@ class Vecto():
             return binary_stream
         else:
             raise ValueError(f'Invalid URL: {url}')
-
-
-    def lookup_image(self, query:Union[str, IO, pathlib.Path, os.PathLike], top_k:int, ids:list=None, **kwargs) -> LookupResponse:
-        '''A function to perform image search on Vecto.
-
-        Args:
-            query (Union[str, IO, pathlib.Path, os.PathLike]): 
-                A string, path-like object, or file-like object containing image data or path to an image data.
-                If `query` is a path-like object or file-like object, it will be opened in binary mode and read as image data.
-            top_k (int): The number of results to return
-            ids (list): A list of vector ids to search on aka subset of vectors, defaults to None
-            **kwargs: Other keyword arguments for clients other than `requests`
-
-        Returns:
-            LookupResponse: named tuple that contains a list of LookupResult named tuples.            
-            where LookResult is named tuple with `data`, `id`, and `similarity` keys.
-        '''
-
-        if isinstance(query, (str, pathlib.Path, os.PathLike)):
-            try:
-                query = open(query, 'rb')
-
-            except FileNotFoundError:
-                print("The file was not found.")
-            except Exception as e:
-                print(f"An error occurred: {e}")
     
-        response = self.lookup(query, modality='IMAGE', top_k=top_k, ids=ids)
 
-        return response
-    
     def lookup_image_from_url(self, query:str, top_k:int, ids:list=None, **kwargs) -> LookupResponse:
-        '''A function to perform image search on Vecto.
+        '''A function to perform image search on Vecto by passing it an url.
 
         Args:
             query (str): url str to an image resource
@@ -293,12 +264,73 @@ class Vecto():
 
         return response
     
-    def lookup_text(self, query:Union[str, IO, pathlib.Path, os.PathLike], top_k:int, ids:list=None, **kwargs) -> LookupResponse:
-        '''A function to perform text search on Vecto.
+
+    def lookup_image_from_filepath(self, query:Union[str, pathlib.Path, os.PathLike], top_k:int, ids:list=None, **kwargs) -> LookupResponse:
+        '''A function to perform image search on Vecto by passing it an image path.
+
+        Args:
+            query (Union[str, pathlib.Path, os.PathLike]): the path to the image query
+            top_k (int): The number of results to return
+            ids (list): A list of vector ids to search on aka subset of vectors, defaults to None
+            **kwargs: Other keyword arguments for clients other than `requests`
+
+        Returns:
+            LookupResponse: named tuple that contains a list of LookupResult named tuples.            
+            where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+        '''
+
+        if os.path.exists(str(query)):
+            query = open(query, 'rb')
+
+        else:
+            raise FileNotFoundError("The file was not found.")
+
+        response = self.lookup(query, modality='IMAGE', top_k=top_k, ids=ids)
+
+        return response
+
+    def lookup_image_from_binary(self, query:IO, top_k:int, ids:list=None, **kwargs) -> LookupResponse:
+        '''A function to perform image search on Vecto.
+
+        Args:
+            query (IO): query already in IO form
+            top_k (int): The number of results to return
+            ids (list): A list of vector ids to search on aka subset of vectors, defaults to None
+            **kwargs: Other keyword arguments for clients other than `requests`
+
+        Returns:
+            LookupResponse: named tuple that contains a list of LookupResult named tuples.            
+            where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+        '''
+
+        response = self.lookup(query, modality='IMAGE', top_k=top_k, ids=ids)
+
+        return response
+
+    def lookup_text_from_str(self, query:str, top_k:int, ids:list=None, **kwargs) -> LookupResponse:
+        '''A function to perform text search on Vecto by passing it a string.
+
+        Args:
+            query(str): query in string
+            top_k (int): The number of results to return
+            ids (list): A list of vector ids to search on aka subset of vectors, defaults to None
+            **kwargs: Other keyword arguments for clients other than `requests`
+
+        Returns:
+            LookupResponse: named tuple that contains a list of LookupResult named tuples.            
+            where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+        '''
+ 
+        response = self.lookup(io.StringIO(query), modality='TEXT', top_k=top_k, ids=ids)
+
+        return response
+
+
+    def lookup_text_from_filepath(self, query:Union[str, pathlib.Path, os.PathLike], top_k:int, ids:list=None, **kwargs) -> LookupResponse:
+        '''A function to perform text search on Vecto by providing it a readable text file path.
 
         Args:
             query (Union[str, IO, pathlib.Path, os.PathLike]): 
-                A string, path-like object, or file-like object containing text data to search.
                 If `query` is a path-like object or file-like object, it will be read as a text file.
             top_k (int): The number of results to return
             ids (list): A list of vector ids to search on aka subset of vectors, defaults to None
@@ -309,31 +341,55 @@ class Vecto():
             where LookResult is named tuple with `data`, `id`, and `similarity` keys.
         '''
 
-        if isinstance(query, (str, pathlib.Path, os.PathLike)):
-            try:
-                # Check if the object is path-like using os.fspath
-                if os.path.exists(str(query)):
-                    print("opening file")
-                    query = open(query, 'rb')
-                else:
-                    if isinstance(query, str):
-                        print("Treating " + query + " query as a string.")
-                        query = io.StringIO(query)
-                    else:
-                        print("File was not found")
-                        raise FileNotFoundError("The file was not found.")
+        if os.path.exists(str(query)):
+            query = open(query, 'rb')
 
-            except Exception as e:
-                print(f"An error occurred: {e}")
-                    
         else:
-            if not isinstance(query, io.TextIOBase):
-                raise ValueError("The input must be a string, path-like object or StringIO object.")
+            raise FileNotFoundError("The file was not found.")
 
         response = self.lookup(query, modality='TEXT', top_k=top_k, ids=ids)
 
         return response
+
+
+    def lookup_text_from_url(self, query:str, top_k:int, ids:list=None, **kwargs) -> LookupResponse:
+        '''A function to perform text search on Vecto by passing it an url.
+
+        Args:
+            query (str): url str to an text resource
+            top_k (int): The number of results to return
+            ids (list): A list of vector ids to search on aka subset of vectors, defaults to None
+            **kwargs: Other keyword arguments for clients other than `requests`
+
+        Returns:
+            LookupResponse: named tuple that contains a list of LookupResult named tuples.            
+            where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+        '''
+
+        content = self.url_to_binary_stream(query)
+        response = self.lookup(content, modality='TEXT', top_k=top_k, ids=ids)
+
+        return response
     
+
+    def lookup_text_from_binary(self, query:IO, top_k:int, ids:list=None, **kwargs) -> LookupResponse:
+        '''A function to perform text search on Vecto by passing it an IO object.
+
+        Args:
+            query (IO): query already in IO form
+            top_k (int): The number of results to return
+            ids (list): A list of vector ids to search on aka subset of vectors, defaults to None
+            **kwargs: Other keyword arguments for clients other than `requests`
+
+        Returns:
+            LookupResponse: named tuple that contains a list of LookupResult named tuples.            
+            where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+        '''
+
+        response = self.lookup(query, modality='TEXT', top_k=top_k, ids=ids)
+
+        return response
+
     ##########
     # Update #
     ##########
