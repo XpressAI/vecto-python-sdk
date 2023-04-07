@@ -69,9 +69,18 @@ class LookupResult(NamedTuple):
     id: int
     similarity: float
 
-class LookupResponse(NamedTuple):
-    '''A named tuple that contains a list of LookupResults.'''
-    results: List[LookupResult]
+class VectoModel(NamedTuple):
+    '''A named tuple that contains a Vecto model attributes: description, id, modality, name.'''
+    description: str
+    id: int
+    modality: str
+    name: str
+
+class VectoVectorSpace(NamedTuple):
+    '''A named tuple that contains a Vecto vector space attribute: id, model, name.'''
+    id: int
+    model: VectoModel
+    name: str
 
 class Client:
     def __init__(self, token:str, vecto_base_url: str, client) -> None:
@@ -79,21 +88,38 @@ class Client:
         self.vecto_base_url = vecto_base_url
         self.client = client
 
-    def post(self, url, data, files, kwargs=None):
+
+    def _make_request(self, method, url, data=None, files=None, kwargs=None):
 
         self.validate_input(url=url, data=data, files=files)
         
         headers = {"Authorization": "Bearer %s" % self.token}
-        response = self.client.post("%s/%s" % (self.vecto_base_url, url),
+
+        response = method("%s/%s" % (self.vecto_base_url, url),
                                         data=data,
                                         files=files,
                                         headers=headers,
                                         **kwargs)
-
+        
         self.check_common_error(response)
 
         return response
 
+    def get(self, url, kwargs=None):
+        response = self._make_request(self.client.get, url, kwargs=kwargs)
+        return response
+
+    def put(self, url, kwargs=None):
+        response = self._make_request(self.client.put, url, kwargs=kwargs)
+        return response
+
+    def delete(self, url, kwargs=None):
+        response = self._make_request(self.client.delete, url, kwargs=kwargs)
+        return response
+
+    def post(self, url, data, files, kwargs=None):
+        response = self._make_request(self.client.post, url, data=data, files=files, kwargs=kwargs)
+        return response
 
     def post_form(self, url, data, kwargs=None):
 
@@ -197,7 +223,7 @@ class Vecto():
     # Lookup #
     ##########
 
-    def lookup(self, query:IO, modality:str, top_k:int, ids:list=None, **kwargs) -> LookupResponse:
+    def lookup(self, query:IO, modality:str, top_k:int, ids:list=None, **kwargs) -> List:
         '''A function to search on Vecto, based on the lookup item.
 
         Args:
@@ -209,8 +235,7 @@ class Vecto():
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
-            LookupResponse: named tuple that contains a list of LookupResult named tuples.            
-            where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+            list of LookupResult named tuples.           , where LookResult is named tuple with `data`, `id`, and `similarity` keys.
         '''
 
         if modality != 'IMAGE' and modality != 'TEXT':
@@ -221,9 +246,9 @@ class Vecto():
         response = self._client.post(('/api/v0/space/%s/lookup' % self.vector_space_id), data, files, kwargs)
         
         if not response.json()['results']:
-            return  LookupResponse(results=[])
+            return []
 
-        return LookupResponse(results=[LookupResult(**r) for r in response.json()['results']])
+        return [LookupResult(**r) for r in response.json()['results']]
 
     def url_to_binary_stream(self, url: str) -> io.BytesIO:
  
@@ -245,7 +270,7 @@ class Vecto():
             raise ValueError(f'Invalid URL: {url}')
     
 
-    def lookup_image_from_url(self, query:str, top_k:int, ids:list=None, **kwargs) -> LookupResponse:
+    def lookup_image_from_url(self, query:str, top_k:int, ids:list=None, **kwargs) -> List:
         '''A function to perform image search on Vecto by passing it an url.
 
         Args:
@@ -255,8 +280,7 @@ class Vecto():
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
-            LookupResponse: named tuple that contains a list of LookupResult named tuples.            
-            where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+            list of LookupResult named tuples.           , where LookResult is named tuple with `data`, `id`, and `similarity` keys.
         '''
 
         content = self.url_to_binary_stream(query)
@@ -265,7 +289,7 @@ class Vecto():
         return response
     
 
-    def lookup_image_from_filepath(self, query:Union[str, pathlib.Path, os.PathLike], top_k:int, ids:list=None, **kwargs) -> LookupResponse:
+    def lookup_image_from_filepath(self, query:Union[str, pathlib.Path, os.PathLike], top_k:int, ids:list=None, **kwargs) -> List:
         '''A function to perform image search on Vecto by passing it an image path.
 
         Args:
@@ -275,8 +299,7 @@ class Vecto():
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
-            LookupResponse: named tuple that contains a list of LookupResult named tuples.            
-            where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+            list of LookupResult named tuples.           , where LookResult is named tuple with `data`, `id`, and `similarity` keys.
         '''
 
         if os.path.exists(str(query)):
@@ -289,7 +312,7 @@ class Vecto():
 
         return response
 
-    def lookup_image_from_binary(self, query:IO, top_k:int, ids:list=None, **kwargs) -> LookupResponse:
+    def lookup_image_from_binary(self, query:IO, top_k:int, ids:list=None, **kwargs) -> List:
         '''A function to perform image search on Vecto.
 
         Args:
@@ -299,15 +322,14 @@ class Vecto():
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
-            LookupResponse: named tuple that contains a list of LookupResult named tuples.            
-            where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+            list of LookupResult named tuples.           , where LookResult is named tuple with `data`, `id`, and `similarity` keys.
         '''
 
         response = self.lookup(query, modality='IMAGE', top_k=top_k, ids=ids)
 
         return response
 
-    def lookup_text_from_str(self, query:str, top_k:int, ids:list=None, **kwargs) -> LookupResponse:
+    def lookup_text_from_str(self, query:str, top_k:int, ids:list=None, **kwargs) -> List:
         '''A function to perform text search on Vecto by passing it a string.
 
         Args:
@@ -317,8 +339,7 @@ class Vecto():
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
-            LookupResponse: named tuple that contains a list of LookupResult named tuples.            
-            where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+            list of LookupResult named tuples.           , where LookResult is named tuple with `data`, `id`, and `similarity` keys.
         '''
  
         response = self.lookup(io.StringIO(query), modality='TEXT', top_k=top_k, ids=ids)
@@ -326,7 +347,7 @@ class Vecto():
         return response
 
 
-    def lookup_text_from_filepath(self, query:Union[str, pathlib.Path, os.PathLike], top_k:int, ids:list=None, **kwargs) -> LookupResponse:
+    def lookup_text_from_filepath(self, query:Union[str, pathlib.Path, os.PathLike], top_k:int, ids:list=None, **kwargs) -> List:
         '''A function to perform text search on Vecto by providing it a readable text file path.
 
         Args:
@@ -337,8 +358,7 @@ class Vecto():
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
-            LookupResponse: named tuple that contains a list of LookupResult named tuples.            
-            where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+            list of LookupResult named tuples.           , where LookResult is named tuple with `data`, `id`, and `similarity` keys.
         '''
 
         if os.path.exists(str(query)):
@@ -352,7 +372,7 @@ class Vecto():
         return response
 
 
-    def lookup_text_from_url(self, query:str, top_k:int, ids:list=None, **kwargs) -> LookupResponse:
+    def lookup_text_from_url(self, query:str, top_k:int, ids:list=None, **kwargs) -> List:
         '''A function to perform text search on Vecto by passing it an url.
 
         Args:
@@ -362,8 +382,7 @@ class Vecto():
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
-            LookupResponse: named tuple that contains a list of LookupResult named tuples.            
-            where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+            list of LookupResult named tuples.           , where LookResult is named tuple with `data`, `id`, and `similarity` keys.
         '''
 
         content = self.url_to_binary_stream(query)
@@ -372,7 +391,7 @@ class Vecto():
         return response
     
 
-    def lookup_text_from_binary(self, query:IO, top_k:int, ids:list=None, **kwargs) -> LookupResponse:
+    def lookup_text_from_binary(self, query:IO, top_k:int, ids:list=None, **kwargs) -> List:
         '''A function to perform text search on Vecto by passing it an IO object.
 
         Args:
@@ -382,8 +401,7 @@ class Vecto():
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
-            LookupResponse: named tuple that contains a list of LookupResult named tuples.            
-            where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+            list of LookupResult named tuples.           , where LookResult is named tuple with `data`, `id`, and `similarity` keys.
         '''
 
         response = self.lookup(query, modality='TEXT', top_k=top_k, ids=ids)
@@ -447,13 +465,13 @@ class Vecto():
     ###########
 
     @classmethod
-    def multipartencoder_query_builder(self, query_category, query_string):
+    def _multipartencoder_query_builder(self, query_category, query_string):
         '''Returns a list of tuples which is expected by analogy form post.
             EG: [('from', ('_', 'tests/demo_dataset/blue.txt'))]'''
         return [(query_category, ('_', query_string))]
 
     @classmethod
-    def build_analogy_query(self, analogy_fields, query, start, end):
+    def _build_analogy_query(self, analogy_fields, query, start, end):
         '''Accepts the init analogy field, file-like objects for query, start and end, 
         and returns a list of tuples which contains one query tuple, 
         and one or more start and end tuples formatted for analogy query.
@@ -464,7 +482,7 @@ class Vecto():
          ('start', ('_', 'Male')), ('end', ('_', 'Female')), 
          ('start', ('_', 'Husband')), ('end', ('_', 'Wife'))]
         '''
-        analogy_fields.extend(self.multipartencoder_query_builder("query", query))
+        analogy_fields.extend(self._multipartencoder_query_builder("query", query))
 
         if type(start) == list:
             if len(start) != len(end):
@@ -475,13 +493,13 @@ class Vecto():
 
         for start, end in zip(start, end):
             
-            analogy_fields.extend(self.multipartencoder_query_builder("start", start))
-            analogy_fields.extend(self.multipartencoder_query_builder("end", end))
+            analogy_fields.extend(self._multipartencoder_query_builder("start", start))
+            analogy_fields.extend(self._multipartencoder_query_builder("end", end))
 
         return analogy_fields
 
 
-    def compute_analogy(self, query:IO, analogy_start_end:Union[VectoAnalogyStartEnd, List[VectoAnalogyStartEnd]], top_k:int, modality:str, **kwargs) -> LookupResponse: # can be text or images
+    def compute_analogy(self, query:IO, analogy_start_end:Union[VectoAnalogyStartEnd, List[VectoAnalogyStartEnd]], top_k:int, modality:str, **kwargs) -> List : # can be text or images
         '''A function to compute an analogy using Vecto.
         It is also possible to do multiple analogies in one request body.
         The computed analogy is not stored in Vecto.
@@ -495,8 +513,7 @@ class Vecto():
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
-            LookupResponse: named tuple that contains a list of LookupResult named tuples.
-            where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+            list of LookupResult named tuples, where LookResult is named tuple with `data`, `id`, and `similarity` keys.
         '''
         
         if not type(analogy_start_end) == list:
@@ -510,16 +527,16 @@ class Vecto():
             end.append(analogy_data['end'])
 
         init_analogy_fields = [('vector_space_id', str(self.vector_space_id)), ('top_k', str(top_k)), ('modality', modality)]
-        analogy_fields = self.build_analogy_query(init_analogy_fields, query, start, end)
+        analogy_fields = self._build_analogy_query(init_analogy_fields, query, start, end)
         
         data = MultipartEncoder(fields=analogy_fields)
 
         response = self._client.post_form(('/api/v0/space/%s/analogy' % self.vector_space_id), data, kwargs)
         
-        return LookupResponse(results=[LookupResult(**r) for r in response.json()['results']])
+        return[LookupResult(**r) for r in response.json()['results']]
 
 
-    def compute_text_analogy(self, query:IO, analogy_start_end:Union[VectoAnalogyStartEnd, List[VectoAnalogyStartEnd]], top_k:int, **kwargs) -> LookupResponse: 
+    def compute_text_analogy(self, query:IO, analogy_start_end:Union[VectoAnalogyStartEnd, List[VectoAnalogyStartEnd]], top_k:int, **kwargs) -> List: 
         '''A function to compute a Text analogy using Vecto.
         It is also possible to do multiple analogies in one request body.
         The computed analogy is not stored in Vecto.
@@ -532,8 +549,7 @@ class Vecto():
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
-            LookupResponse: named tuple that contains a list of LookupResult named tuples.
-            where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+            list of LookupResult named tuples, where LookResult is named tuple with `data`, `id`, and `similarity` keys.
 
         '''
 
@@ -541,7 +557,7 @@ class Vecto():
 
         return response
 
-    def compute_image_analogy(self, query:IO, analogy_start_end:Union[VectoAnalogyStartEnd, List[VectoAnalogyStartEnd]], top_k:int, **kwargs) -> LookupResponse: 
+    def compute_image_analogy(self, query:IO, analogy_start_end:Union[VectoAnalogyStartEnd, List[VectoAnalogyStartEnd]], top_k:int, **kwargs) -> List: 
         '''A function to compute an IMAGE analogy using Vecto.
         It is also possible to do multiple analogies in one request body.
         The computed analogy is not stored in Vecto.
@@ -554,8 +570,7 @@ class Vecto():
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
-            LookupResponse: named tuple that contains a list of LookupResult named tuples.
-            where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+            list of LookupResult named tuples, where LookResult is named tuple with `data`, `id`, and `similarity` keys.
         '''
 
         response = self.compute_analogy(query, analogy_start_end, top_k, 'IMAGE')
@@ -640,14 +655,14 @@ class Vecto():
         progress_bar = False
 
     @classmethod
-    def custom_progress_bar(self, iterable, desc=None, total=None, progress_bar=False):
+    def _custom_progress_bar(self, iterable, desc=None, total=None, progress_bar=False):
         if progress_bar:
             return tqdm(iterable, desc=desc, total=total)
         else:
             return iterable
 
     @classmethod
-    def batch(self, input_list: list, batch_size:int):
+    def _batch(self, input_list: list, batch_size:int):
         
         batch_count = math.ceil(len(input_list) / batch_size)
         for i in range(batch_count):
@@ -704,14 +719,14 @@ class Vecto():
         """
         batch_count = math.ceil(len(path_list) / batch_size)
 
-        path_batches = self.batch(path_list, batch_size)
-        attribute_batches = self.batch(attribute_list, batch_size)
+        path_batches = self._batch(path_list, batch_size)
+        attribute_batches = self._batch(attribute_list, batch_size)
 
         ingest_ids = []
 
-        for path_batch, attribute_batch in self.custom_progress_bar(zip(path_batches, attribute_batches), total=batch_count, progress_bar=progress_bar):
+        for path_batch, attribute_batch in self._custom_progress_bar(zip(path_batches, attribute_batches), total=batch_count, progress_bar=progress_bar):
             try:
-                ids = self.ingest_image(vs, path_batch, attribute_batch)
+                ids = self.ingest_image(path_batch, attribute_batch)
                 ingest_ids.append(ids)
             except:
                 print("Error in ingesting:\n", path_batch)
@@ -766,13 +781,13 @@ class Vecto():
         
         batch_count = math.ceil(len(text_list) / batch_size)
 
-        text_batches = self.batch(text_list, batch_size)
-        attribute_batches = self.batch(attribute_list, batch_size)
+        text_batches = self._batch(text_list, batch_size)
+        attribute_batches = self._batch(attribute_list, batch_size)
         ingest_ids = []
 
         for path_batch, attribute_batch in (tqdm(zip(text_batches, attribute_batches), total=batch_count) if progress_bar else zip(text_batches, attribute_batches)):
             try:
-                ids = self.ingest_text(vs, path_batch, attribute_batch)
+                ids = self.ingest_text(path_batch, attribute_batch)
                 ingest_ids.append(ids)
             except:
                 print("Error in ingesting:\n", path_batch)

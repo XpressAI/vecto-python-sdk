@@ -53,8 +53,8 @@ def test_clear_vector_space_entries():
     f = io.StringIO('blue')
     lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
     
-    logger.info("Checking if there's 0 lookup results: " + str(len(lookup_response.results) == 0))
-    assert len(lookup_response.results) is 0
+    logger.info("Checking if there's 0 lookup results: " + str(len(lookup_response) == 0))
+    assert len(lookup_response) is 0
 
 
 @pytest.mark.ingest
@@ -183,7 +183,7 @@ class TestIngesting:
         ref_db = user_db_twin.get_database()
 
         logger.info('Length of ref_df is :' + str(len(ref_db)))
-        assert len(ref_db) is len(user_vecto.lookup(" ", modality='TEXT', top_k=100).results)
+        assert len(ref_db) is len(user_vecto.lookup(" ", modality='TEXT', top_k=100))
 
 @pytest.mark.lookup
 class TestLookup:
@@ -192,7 +192,7 @@ class TestLookup:
     def test_lookup_on_text(self):
         f = io.StringIO('blue')
         response_k5 = user_vecto.lookup(f, modality='TEXT', top_k=5)
-        results_k5 = response_k5.results
+        results_k5 = response_k5
 
         # logger.info(response_k5)
         # assert response_k5.status_code is 200
@@ -208,7 +208,7 @@ class TestLookup:
 
         # top_k=100 is to return everything in the vector space
         response_k100 = user_vecto.lookup(f, modality='TEXT', top_k=100)
-        results_k100 = response_k100.results
+        results_k100 = response_k100
 
         # logger.info(response_k100)
         # assert response_k100.status_code is 200
@@ -227,7 +227,7 @@ class TestLookup:
         query = TestDataset.get_random_image()[0]
         with open(query, 'rb') as f:
             response_k5 = user_vecto.lookup(f, modality='IMAGE', top_k=5)
-        results_k5 = response_k5.results
+        results_k5 = response_k5
 
         assert response_k5 is not None
         logger.info("Checking if there's 5 lookup results: " + str(len(results_k5) == 5))
@@ -241,7 +241,7 @@ class TestLookup:
 
         with open(query, 'rb') as f:
             response_k100 = user_vecto.lookup(f, modality='IMAGE', top_k=100)
-        results_k100 = response_k100.results
+        results_k100 = response_k100
 
         assert response_k100 is not None
         logger.info("Checking if there's 17 lookup results: " + str(len(results_k100) == 17))
@@ -278,7 +278,7 @@ class TestLookup:
         logger.info("Checking that lookup_image_from_url correctly detects an invalid URL")
         from urllib.error import URLError
 
-        invalid_url = "http://invalid-url.example.com/image.jpg"
+        invalid_url = "http://invalid-url.example.com!/image.jpg"
         try:
             user_vecto.lookup_image_from_url(invalid_url, 5)
         
@@ -425,7 +425,7 @@ class TestUpdating:
         # Just a dummy lookup to return the specified ID - check specific entry
         f = io.StringIO('blue')
         lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=1, ids=vector_id)
-        results = lookup_response.results[0]
+        results = lookup_response[0]
 
         logger.info("Checking if attribute is updated: " + str(results.attributes == new_attribute))
         assert results.attributes == new_attribute
@@ -436,7 +436,7 @@ class TestUpdating:
         lookup_attribute = []
 
         #need to iterate though this object
-        for result in lookup_response.results:
+        for result in lookup_response:
             if result.id != vector_id:
                 lookup_attribute.append([result.id, result.attributes])
         logger.info("Checking if other attribute is not updated...")
@@ -465,7 +465,7 @@ class TestUpdating:
         
         # Just a dummy lookup to return all the data in the vector space - check other entries
         f = io.StringIO('blue')
-        lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=batch_len, ids=vector_ids).results
+        lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=batch_len, ids=vector_ids)
         lookup_attribute = []
         for result in lookup_response:
             if result.id in vector_ids:
@@ -479,7 +479,7 @@ class TestUpdating:
         f = io.StringIO('blue')
         lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
         lookup_attribute = []
-        for result in lookup_response.results:
+        for result in lookup_response:
             if result.id != vector_ids:
                 lookup_attribute.append([result.id, result.attributes])
 
@@ -504,7 +504,7 @@ class TestAnalogy:
         top_k = 10
         modality = 'TEXT'
         response = user_vecto.compute_analogy(query, analogy_start_end, top_k, modality)
-        results = response.results
+        results = response
 
         assert response is not None
         logger.info("Checking if number of lookup results is equal to top_k: " + str(len(results) == top_k))
@@ -545,7 +545,7 @@ class TestDelete:
 
         f = io.StringIO('blue')
         lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
-        results = lookup_response.results
+        results = lookup_response
         deleted_ids = user_db_twin.get_deleted_ids()
        
         logger.info("Checking if the length of result is 11: " + str(len(results) == (len(ref_db) - len(deleted_ids))))
@@ -566,7 +566,7 @@ class TestDelete:
 
         f = io.StringIO('blue')
         lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
-        results = lookup_response.results
+        results = lookup_response
        
         logger.info("Checking if the length of result is 6: " + str(len(results) == (len(ref_db) - len(deleted_ids))))
         assert len(results) is (len(ref_db) - len(deleted_ids))
@@ -598,7 +598,7 @@ class TestExceptions:
         top_k = 20
         modality = 'TEXT'
         response = user_vecto.compute_analogy(query, analogy_start_end, top_k, modality)
-        results = response.results
+        results = response
 
         logger.info("Checking if values in 'data' is queen: " + str(isinstance(results[0].attributes, str)))
         
