@@ -793,3 +793,66 @@ class Vecto():
                 print("Error in ingesting:\n", path_batch)
 
         return ingest_ids
+
+    ##################
+    # Management API #
+    ##################
+
+
+    def list_models(self, **kwargs) -> List:
+        url = "/api/v0/account/model"
+        response = self._client.get(url, kwargs=kwargs)
+
+        if not response.json():
+            return []
+
+        return [VectoModel(**r) for r in response.json()]
+    
+    def list_vector_spaces(self, **kwargs) -> List:
+        url = "/api/v0/account/space"
+        response = self._client.get(url, kwargs=kwargs)
+
+        if not response.json():
+            return []
+
+        return [VectoVectorSpace(**r) for r in response.json()]
+    
+    def create_vector_space(self, new_vector_space_request, **kwargs) -> object:
+        url = "/api/v0/account/space"
+        response = self._client.post(url, data=new_vector_space_request, files=None, kwargs=kwargs)
+        return response.json()
+
+    def get_vector_space(self, id:int, **kwargs) -> object:
+        url = f"/api/v0/account/space/{id}"
+        response = self._client.get(url, kwargs=kwargs)
+    
+        model_data = response.json()["model"]
+        vecto_model = VectoModel(description=model_data["description"], id=model_data["id"], modality=model_data["modality"], name=model_data["name"])
+        return VectoVectorSpace(id=response.json()["id"], model=vecto_model, name=response.json()["name"])
+    
+        return VectoVectorSpace(**response.json())
+
+    def get_vector_space_by_name(self, name:str, **kwargs) -> object:
+
+        url = f"/api/v0/account/space/{id}"
+        response = self._client.get(url, kwargs=kwargs)
+        return response.json()
+    
+
+    def update_vector_space(self, id, update_vector_space_request, **kwargs) -> object:
+        url = f"/api/v0/account/space/{id}"
+        response = self._client.put(url, data=update_vector_space_request, files=None, kwargs=kwargs)
+        return response.json()
+
+    def delete_vector_space(self, id, **kwargs) -> object:
+        url = f"/api/v0/account/space/{id}"
+        response = self._client.delete(url, kwargs=kwargs)
+        return response.json()
+
+    def list_analogies(self, vector_space_id, **kwargs) -> object:
+        url = f"/api/v0/account/space/{vector_space_id}/analogy"
+        response = self._client.get(url, kwargs=kwargs)
+        return response.json()
+
+    
+    
