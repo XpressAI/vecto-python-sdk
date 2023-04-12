@@ -87,44 +87,71 @@ class Client:
         self.token = token
         self.vecto_base_url = vecto_base_url
         self.client = client
-
-
-    def _make_request(self, method, url, data=None, files=None, kwargs=None):
-
-        self.validate_input(url=url, data=data, files=files)
         
-        headers = {"Authorization": "Bearer %s" % self.token}
 
-        response = method("%s/%s" % (self.vecto_base_url, url),
-                                        data=data,
-                                        files=files,
+    def get(self, url, **kwargs):
+
+        self.validate_input(url=url)
+        headers = {"Authorization": "Bearer %s" % self.token}
+        response = self.client.get("%s/%s" % (self.vecto_base_url, url),
                                         headers=headers,
                                         **kwargs)
         
         self.check_common_error(response)
-
         return response
 
-    def get(self, url, kwargs=None):
-        response = self._make_request(self.client.get, url, kwargs=kwargs)
+
+    def put(self, url, data=None, files=None, **kwargs):
+
+        self.validate_input(url=url, data=data, files=files)
+        headers = {"Authorization": "Bearer %s" % self.token}
+        response = self.client.put("%s/%s" % (self.vecto_base_url, url),
+                                        data=data,
+                                        files=files,
+                                        headers=headers,
+                                        **kwargs)
+        self.check_common_error(response)
         return response
 
-    def put(self, url, kwargs=None):
-        response = self._make_request(self.client.put, url, kwargs=kwargs)
+
+    def delete(self, url, data=None, files=None, **kwargs):
+
+        self.validate_input(url=url, data=data, files=files)
+        headers = {"Authorization": "Bearer %s" % self.token}
+        response = self.client.delete("%s/%s" % (self.vecto_base_url, url),
+                                        data=data,
+                                        files=files,
+                                        headers=headers,
+                                        **kwargs)
+        self.check_common_error(response)
         return response
 
-    def delete(self, url, kwargs=None):
-        response = self._make_request(self.client.delete, url, kwargs=kwargs)
+    def post(self, url, data, files, **kwargs):
+
+        self.validate_input(url=url, data=data, files=files)
+        headers = {"Authorization": "Bearer %s" % self.token}
+        response = self.client.post("%s/%s" % (self.vecto_base_url, url),
+                                        data=data,
+                                        files=files,
+                                        headers=headers,
+                                        **kwargs)
+        self.check_common_error(response)
         return response
 
-    def post(self, url, data, files, kwargs=None):
-        response = self._make_request(self.client.post, url, data=data, files=files, kwargs=kwargs)
+    def post_json(self, url, json, **kwargs):
+
+        self.validate_input(url=url)
+        headers = {"Authorization": "Bearer %s" % self.token, 'Content-Type': 'application/json'}
+        response = self.client.post("%s/%s" % (self.vecto_base_url, url),
+                                        json=json,
+                                        headers=headers,
+                                        **kwargs)
+        self.check_common_error(response)
         return response
 
     def post_form(self, url, data, kwargs=None):
 
         self.validate_input(url=url, data=data)
-
         headers = {"Authorization": "Bearer %s" % self.token, 'Content-Type': data.content_type}
         response = self.client.post("%s/%s" % (self.vecto_base_url, url),
                                 data=data,
@@ -132,8 +159,8 @@ class Client:
                                 **kwargs)
 
         self.check_common_error(response)
-        
         return response
+
 
     def validate_input(self, url=None, data=None, files=None, headers=None):
 
@@ -215,7 +242,7 @@ class Vecto():
         
         data = {'attributes': attribute, 'modality': modality}
 
-        response = self._client.post(('/api/v0/space/%s/index' % self.vector_space_id), data, files, kwargs)
+        response = self._client.post(('/api/v0/space/%s/index' % self.vector_space_id), data=data, files=files, **kwargs)
 
         return IngestResponse(response.json()['ids'])
 
@@ -243,7 +270,7 @@ class Vecto():
 
         data={'modality': modality, 'top_k': top_k, 'ids': ids}
         files={'query': query}
-        response = self._client.post(('/api/v0/space/%s/lookup' % self.vector_space_id), data, files, kwargs)
+        response = self._client.post(('/api/v0/space/%s/lookup' % self.vector_space_id), data=data, files=files, **kwargs)
         
         if not response.json()['results']:
             return []
@@ -434,7 +461,7 @@ class Vecto():
         files = [('input', ('_', r['data'], '_')) for r in embedding_data]
 
         data={'vector_space_id': self.vector_space_id, 'id': vector_id, 'modality': modality}
-        response = self._client.post(('/api/v0/space/%s/update/vectors' % self.vector_space_id), data, files, kwargs) 
+        response = self._client.post(('/api/v0/space/%s/update/vectors' % self.vector_space_id), data=data, files=files, **kwargs) 
 
         return response
 
@@ -799,9 +826,14 @@ class Vecto():
     ##################
 
 
+    def get_user_information(self, **kwargs) -> object:
+        url = "/api/v0/account/user"
+        response = self._client.get(url, **kwargs)
+        return response.json()
+
     def list_models(self, **kwargs) -> List:
         url = "/api/v0/account/model"
-        response = self._client.get(url, kwargs=kwargs)
+        response = self._client.get(url, **kwargs)
 
         if not response.json():
             return []
@@ -810,49 +842,47 @@ class Vecto():
     
     def list_vector_spaces(self, **kwargs) -> List:
         url = "/api/v0/account/space"
-        response = self._client.get(url, kwargs=kwargs)
+        response = self._client.get(url, **kwargs)
 
         if not response.json():
             return []
 
         return [VectoVectorSpace(**r) for r in response.json()]
     
-    def create_vector_space(self, new_vector_space_request, **kwargs) -> object:
+    def create_vector_space(self, name, id, **kwargs) -> object:
         url = "/api/v0/account/space"
-        response = self._client.post(url, data=new_vector_space_request, files=None, kwargs=kwargs)
-        return response.json()
+        data={'name': name, 'modelId': id}
+        response = self._client.post_json(url, data, files=None, **kwargs)
+        return response
 
     def get_vector_space(self, id:int, **kwargs) -> object:
         url = f"/api/v0/account/space/{id}"
-        response = self._client.get(url, kwargs=kwargs)
+        response = self._client.get(url, **kwargs)
     
         model_data = response.json()["model"]
         vecto_model = VectoModel(description=model_data["description"], id=model_data["id"], modality=model_data["modality"], name=model_data["name"])
         return VectoVectorSpace(id=response.json()["id"], model=vecto_model, name=response.json()["name"])
     
-        return VectoVectorSpace(**response.json())
 
-    def get_vector_space_by_name(self, name:str, **kwargs) -> object:
+    def get_vector_space_by_name(self, name:str, **kwargs) -> List[VectoVectorSpace]:
 
-        url = f"/api/v0/account/space/{id}"
-        response = self._client.get(url, kwargs=kwargs)
-        return response.json()
-    
+        response = self._client.get("/api/v0/account/space", **kwargs)
+        vector_spaces = [VectoVectorSpace(**r) for r in response.json()]
+        matching_spaces = [vs for vs in vector_spaces if vs.name == name]
+
+        return matching_spaces
 
     def update_vector_space(self, id, update_vector_space_request, **kwargs) -> object:
         url = f"/api/v0/account/space/{id}"
-        response = self._client.put(url, data=update_vector_space_request, files=None, kwargs=kwargs)
+        response = self._client.put(url, data=update_vector_space_request, files=None, **kwargs)
         return response.json()
 
     def delete_vector_space(self, id, **kwargs) -> object:
         url = f"/api/v0/account/space/{id}"
-        response = self._client.delete(url, kwargs=kwargs)
+        response = self._client.delete(url, **kwargs)
         return response.json()
 
     def list_analogies(self, vector_space_id, **kwargs) -> object:
         url = f"/api/v0/account/space/{vector_space_id}/analogy"
-        response = self._client.get(url, kwargs=kwargs)
+        response = self._client.get(url, **kwargs)
         return response.json()
-
-    
-    
