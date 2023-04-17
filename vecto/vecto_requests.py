@@ -235,7 +235,7 @@ class Vecto():
 
         return [LookupResult(**r) for r in response.json()['results']]
 
-    def url_to_binary_stream(self, url: str) -> io.BytesIO:
+    def _url_to_binary_stream(self, url: str) -> io.BytesIO:
  
         from urllib.request import urlopen
         from urllib.parse import urlparse
@@ -268,7 +268,7 @@ class Vecto():
             list of LookupResult named tuples, where LookResult is named tuple with `data`, `id`, and `similarity` keys.
         '''
 
-        content = self.url_to_binary_stream(query)
+        content = self._url_to_binary_stream(query)
         response = self.lookup(content, modality='IMAGE', top_k=top_k, ids=ids)
 
         return response
@@ -370,7 +370,7 @@ class Vecto():
             list of LookupResult named tuples.           , where LookResult is named tuple with `data`, `id`, and `similarity` keys.
         '''
 
-        content = self.url_to_binary_stream(query)
+        content = self._url_to_binary_stream(query)
         response = self.lookup(content, modality='TEXT', top_k=top_k, ids=ids)
 
         return response
@@ -386,7 +386,7 @@ class Vecto():
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
-            list of LookupResult named tuples.           , where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+            list of LookupResult named tuples, where LookResult is named tuple with `data`, `id`, and `similarity` keys.
         '''
 
         response = self.lookup(query, modality='TEXT', top_k=top_k, ids=ids)
