@@ -28,7 +28,7 @@ from .exceptions import ( VectoException, UnauthorizedException, UnpairedAnalogy
 
 from .schema import (VectoIngestData, VectoEmbeddingData, VectoAttribute, VectoAnalogyStartEnd,
                     IngestResponse, LookupResult, VectoModel, VectoVectorSpace, VectoUser,
-                    VectoToken, VectoNewTokenResponse, MODEL_MAP)
+                    VectoToken, VectoNewTokenResponse, MODEL_MAP, VectoAnalogy)
 
 
 class Client:
@@ -597,7 +597,7 @@ class Vecto():
 
     # Delete
 
-    def delete_vector_embeddings(self, vector_ids:list, **kwargs)
+    def delete_vector_embeddings(self, vector_ids:list, **kwargs):
         '''A function to delete vector embeddings that is stored in Vecto.
 
         Args:
@@ -609,7 +609,7 @@ class Vecto():
         self._client.post_form(('/api/v0/space/%s/delete' % self.vector_space_id), data, kwargs)
         
 
-    def delete_vector_space_entries(self, **kwargs)
+    def delete_vector_space_entries(self, **kwargs):
         '''A function to delete the current vector space in Vecto. 
         All ingested entries will be deleted as well.
 
@@ -994,8 +994,51 @@ class Vecto():
         self._client.delete(url, **kwargs)
 
 
-    def list_analogies(self, vector_space_id, **kwargs) -> object:
+    def list_analogies(self, vector_space_id:int, **kwargs) -> List[VectoAnalogy]:
+        '''List all available analogies in the specified vector space.
+
+        Args:
+            vector_space_id (int): The ID of the vector space.
+            **kwargs: Other keyword arguments for clients other than `requests`
+
+        Returns:
+            List[VectoAnalogy]: A list of available VectoAnalogy instances in the specified vector space.
+        '''
+
         url = f"/api/v0/account/space/{vector_space_id}/analogy"
         response = self._client.get(url, **kwargs)
-        return response.json()
+        return [VectoAnalogy(**analogy) for analogy in response.json()]
+
+    # TODO: Update create analogy when API is completed
+    # def create_analogy(self, vector_space_id:int, **kwargs) -> object:
+        
+    #     url = f"/api/v0/account/space/{vector_space_id}/analogy"
+    #     response = self._client.post(url, data=None, files=None, **kwargs)
+    #     return response.json()
+    
+    def get_analogy(self, vector_space_id:int, analogy_id:int, **kwargs) -> VectoAnalogy:
+        '''Retrieve an analogy by its ID from the specified vector space.
+
+        Args:
+            vector_space_id (int): The ID of the vector space.
+            analogy_id (int): The ID of the analogy.
+            **kwargs: Other keyword arguments for clients other than `requests`
+
+        Returns:
+            VectoAnalogy: The VectoAnalogy instance containing the specified analogy information.
+        '''
+
+        url = f"/api/v0/account/space/{vector_space_id}/analogy/{analogy_id}"
+        response = self._client.get(url, **kwargs)
+        return VectoAnalogy(**response.json())
+    
+    def delete_analogy(self, vector_space_id:int, **kwargs):
+        '''Delete an analogy from the specified vector space.
+
+        Args:
+            vector_space_id (int): The ID of the vector space.
+            **kwargs: Other keyword arguments for clients other than `requests`
+        '''
+        url = f"/api/v0/account/space/{vector_space_id}/analogy"
+        self._client.delete(url, **kwargs)
     
