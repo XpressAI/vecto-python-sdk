@@ -37,7 +37,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 import os
-token = os.environ['user_token']
+token = os.environ['management_token']
 vector_space_id = int(os.environ['vector_space_id'])
 vecto_base_url = os.environ['vecto_base_url']
 

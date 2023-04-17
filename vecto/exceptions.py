@@ -62,3 +62,6 @@ class ConsumedResourceException(VectoException):
 
     def __str__(self):
         return f'{self.message}'
+
+class ModelNotFoundException(Exception):
+    pass

@@ -21,66 +21,15 @@ import io
 import os
 import pathlib
 
-from typing import IO, List, Union, NamedTuple
+from typing import IO, List, Union
 from .exceptions import ( VectoException, UnauthorizedException, UnpairedAnalogy, 
                         ForbiddenException, NotFoundException, ServiceException, 
-                        InvalidModality, ConsumedResourceException )
+                        InvalidModality, ConsumedResourceException, ModelNotFoundException )
 
-import sys
+from .schema import (VectoIngestData, VectoEmbeddingData, VectoAttribute, VectoAnalogyStartEnd,
+                    IngestResponse, LookupResult, VectoModel, VectoVectorSpace, VectoUser,
+                    VectoToken, VectoNewTokenResponse, MODEL_MAP)
 
-if sys.version_info >= (3, 8):
-    from typing import TypedDict
-else:
-    from typing_extensions import TypedDict
-
-class VectoIngestData(TypedDict):
-    '''A named tuple that contains the expected Vecto input format.
-    For data, you may use open(path, 'rb') for IMAGE queries or io.StringIO(text) for TEXT queries.
-    You may append as many attribute to attributes as needed.'''
-    data: IO
-    attributes: dict
-
-class VectoEmbeddingData(TypedDict):
-    '''A named tuple that contains the expected Vecto embedding format for updating.
-    For data, you may use open(path, 'rb') for IMAGE queries or io.StringIO(text) for TEXT queries.
-    '''
-    id: int
-    data: IO
-
-class VectoAttribute(TypedDict):
-    '''A named tuple that contains the expected Vecto attribute format for updating.
-    You may append as many attribute to attributes as needed'''
-    id: int
-    attributes: dict
-
-class VectoAnalogyStartEnd(TypedDict):
-    '''A named tuple that contains the expected Vecto analogy start-end input format.
-    For data, you may use open(path, 'rb') for IMAGE queries or io.StringIO(text) for TEXT queries.'''
-    start: IO
-    end: IO
-
-class IngestResponse(NamedTuple):
-    '''A named tuple that contains a list of ids of ingested data.'''
-    ids: List[int]
-
-class LookupResult(NamedTuple):
-    '''A named tuple that contains the lookup result content: attributes, id, and similarity.'''
-    attributes: object
-    id: int
-    similarity: float
-
-class VectoModel(NamedTuple):
-    '''A named tuple that contains a Vecto model attributes: description, id, modality, name.'''
-    description: str
-    id: int
-    modality: str
-    name: str
-
-class VectoVectorSpace(NamedTuple):
-    '''A named tuple that contains a Vecto vector space attribute: id, model, name.'''
-    id: int
-    model: VectoModel
-    name: str
 
 class Client:
     def __init__(self, token:str, vecto_base_url: str, client) -> None:
@@ -101,13 +50,22 @@ class Client:
         return response
 
 
-    def put(self, url, data=None, files=None, **kwargs):
+    def put(self, url, json=None, data=None, files=None, **kwargs):
 
         self.validate_input(url=url, data=data, files=files)
         headers = {"Authorization": "Bearer %s" % self.token}
         response = self.client.put("%s/%s" % (self.vecto_base_url, url),
-                                        data=data,
-                                        files=files,
+                                        headers=headers,
+                                        **kwargs)
+        self.check_common_error(response)
+        return response
+    
+    def put_json(self, url, json, **kwargs):
+
+        self.validate_input(url=url)
+        headers = {"Authorization": "Bearer %s" % self.token, 'Content-Type': 'application/json'}
+        response = self.client.put("%s/%s" % (self.vecto_base_url, url),
+                                        json=json,
                                         headers=headers,
                                         **kwargs)
         self.check_common_error(response)
@@ -825,13 +783,24 @@ class Vecto():
     # Management API #
     ##################
 
+    def _get_model_type(self, input_value):
+        if isinstance(input_value, int):
+            if input_value in MODEL_MAP:
+                return input_value
+            else:
+                raise ModelNotFoundException(f"Model not found for integer value: {input_value}")
+        elif isinstance(input_value, str):
+            input_value = input_value.upper()
+            for model_int, model_str in MODEL_MAP.items():
+                if model_str == input_value:
+                    return model_int
+            else:
+                raise ModelNotFoundException(f"Model not found for string value: {input_value}")
+        else:
+            raise TypeError(f"Invalid input type: {type(input_value)}.")
 
-    def get_user_information(self, **kwargs) -> object:
-        url = "/api/v0/account/user"
-        response = self._client.get(url, **kwargs)
-        return response.json()
 
-    def list_models(self, **kwargs) -> List:
+    def list_models(self, **kwargs) -> List[VectoModel]:
         url = "/api/v0/account/model"
         response = self._client.get(url, **kwargs)
 
@@ -840,49 +809,96 @@ class Vecto():
 
         return [VectoModel(**r) for r in response.json()]
     
-    def list_vector_spaces(self, **kwargs) -> List:
+    def list_vector_spaces(self, **kwargs) -> List[VectoVectorSpace]:
         url = "/api/v0/account/space"
         response = self._client.get(url, **kwargs)
 
         if not response.json():
             return []
 
-        return [VectoVectorSpace(**r) for r in response.json()]
+        return [
+            VectoVectorSpace(id=r['id'], model=VectoModel(**r['model']), name=r['name'])
+            for r in response.json()
+        ]
     
-    def create_vector_space(self, name, id, **kwargs) -> object:
+    def create_vector_space(self, name:str, model: Union[int, str], **kwargs) -> VectoVectorSpace:
         url = "/api/v0/account/space"
-        data={'name': name, 'modelId': id}
-        response = self._client.post_json(url, data, files=None, **kwargs)
-        return response
+        id = self._get_model_type(model)
+        json={'name': name, 'modelId': id}
 
-    def get_vector_space(self, id:int, **kwargs) -> object:
+        response = self._client.post_json(url, json, **kwargs)
+        response_json = response.json()
+
+        return VectoVectorSpace(id=response_json["id"], model=VectoModel(**response_json["model"]), name=response_json["name"])
+
+    def get_vector_space(self, id:int, **kwargs) -> VectoVectorSpace:
         url = f"/api/v0/account/space/{id}"
-        response = self._client.get(url, **kwargs)
-    
-        model_data = response.json()["model"]
-        vecto_model = VectoModel(description=model_data["description"], id=model_data["id"], modality=model_data["modality"], name=model_data["name"])
-        return VectoVectorSpace(id=response.json()["id"], model=vecto_model, name=response.json()["name"])
+        response = self._client.get(url, **kwargs)    
+        response_json = response.json()
+
+        return VectoVectorSpace(id=response_json["id"], model=VectoModel(**response_json["model"]), name=response_json["name"])
     
 
     def get_vector_space_by_name(self, name:str, **kwargs) -> List[VectoVectorSpace]:
 
-        response = self._client.get("/api/v0/account/space", **kwargs)
-        vector_spaces = [VectoVectorSpace(**r) for r in response.json()]
+        vector_spaces = self.list_vector_spaces()
         matching_spaces = [vs for vs in vector_spaces if vs.name == name]
 
         return matching_spaces
 
-    def update_vector_space(self, id, update_vector_space_request, **kwargs) -> object:
+    def rename_vector_space(self, id:str, new_name:str, **kwargs) -> VectoVectorSpace:
         url = f"/api/v0/account/space/{id}"
-        response = self._client.put(url, data=update_vector_space_request, files=None, **kwargs)
-        return response.json()
+        json = {'name' : new_name}
+        response = self._client.put_json(url, json=json, **kwargs)
+        return VectoVectorSpace(**response.json())
 
     def delete_vector_space(self, id, **kwargs) -> object:
         url = f"/api/v0/account/space/{id}"
-        response = self._client.delete(url, **kwargs)
-        return response.json()
+        self._client.delete(url, **kwargs)
+
+    def delete_all_vector_spaces(self, **kwargs) -> object:
+        vector_spaces = self.list_vector_spaces()
+        
+        for vs in vector_spaces:
+            try:
+                self.delete_vector_space(vs.id)
+            except:
+                print("fail in deleting vs " + str(vs.name))
 
     def list_analogies(self, vector_space_id, **kwargs) -> object:
         url = f"/api/v0/account/space/{vector_space_id}/analogy"
         response = self._client.get(url, **kwargs)
         return response.json()
+    
+
+    def get_user_information(self, **kwargs) -> VectoUser:
+        url = "/api/v0/account/user"
+        response = self._client.get(url, **kwargs)
+        return VectoUser(**response.json())
+    
+
+    def list_tokens(self, **kwargs) -> List[VectoToken]:
+        url = "/api/v0/account/tokens"
+        response = self._client.get(url, **kwargs)
+        return [VectoToken(**token) for token in response.json()]
+    
+
+    def create_token(self, token_name:str, tokenType:str, vectorSpaceIds:List[int], allowsAccessToAllVectorSpaces:bool, **kwargs) -> VectoNewTokenResponse:
+
+        tokenType = tokenType.upper()
+        if isinstance(vectorSpaceIds, int):
+            vectorSpaceIds = [vectorSpaceIds]
+        if tokenType not in ["USAGE", "PUBLIC", "ACCOUNT_MANAGEMENT"]:
+                raise ValueError("Invalid tokenType. Must be one of 'USAGE', 'PUBLIC', or 'ACCOUNT_MANAGEMENT'.")
+
+        url = "/api/v0/account/tokens"
+        json={'name': token_name, 'tokenType':tokenType, 'vectorSpaceIds': vectorSpaceIds, 
+              'allowsAccessToAllVectorSpaces': allowsAccessToAllVectorSpaces}
+        response = self._client.post_json(url, json, **kwargs)
+        return VectoNewTokenResponse(**response.json())
+    
+
+    def delete_token(self, token_id:int, **kwargs):
+
+        url = f"/api/v0/account/tokens/{token_id}"
+        self._client.delete(url, **kwargs)
