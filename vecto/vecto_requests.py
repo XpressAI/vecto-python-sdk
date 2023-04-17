@@ -220,7 +220,7 @@ class Vecto():
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
-            list of LookupResult named tuples.           , where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+            list of LookupResult named tuples, where LookResult is named tuple with `data`, `id`, and `similarity` keys.
         '''
 
         if modality != 'IMAGE' and modality != 'TEXT':
@@ -265,7 +265,7 @@ class Vecto():
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
-            list of LookupResult named tuples.           , where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+            list of LookupResult named tuples, where LookResult is named tuple with `data`, `id`, and `similarity` keys.
         '''
 
         content = self.url_to_binary_stream(query)
@@ -284,7 +284,7 @@ class Vecto():
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
-            list of LookupResult named tuples.           , where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+            list of LookupResult named tuples, where LookResult is named tuple with `data`, `id`, and `similarity` keys.
         '''
 
         if os.path.exists(str(query)):
@@ -307,7 +307,7 @@ class Vecto():
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
-            list of LookupResult named tuples.           , where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+            list of LookupResult named tuples, where LookResult is named tuple with `data`, `id`, and `similarity` keys.
         '''
 
         response = self.lookup(query, modality='IMAGE', top_k=top_k, ids=ids)
@@ -324,7 +324,7 @@ class Vecto():
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
-            list of LookupResult named tuples.           , where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+            list of LookupResult named tuples, where LookResult is named tuple with `data`, `id`, and `similarity` keys.
         '''
  
         response = self.lookup(io.StringIO(query), modality='TEXT', top_k=top_k, ids=ids)
@@ -343,7 +343,7 @@ class Vecto():
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
-            list of LookupResult named tuples.           , where LookResult is named tuple with `data`, `id`, and `similarity` keys.
+            list of LookupResult named tuples, where LookResult is named tuple with `data`, `id`, and `similarity` keys.
         '''
 
         if os.path.exists(str(query)):
@@ -585,45 +585,36 @@ class Vecto():
         self._client.post_form(('/api/v0/space/%s/analogy' % self.vector_space_id), data, kwargs)
 
 
-    def delete_analogy(self, analogy_id:int, **kwargs) -> object:
+    def delete_analogy(self, analogy_id:int, **kwargs):
         '''A function to delete an analogy that is stored in Vecto.
 
         Args:
             analogy_id (int): The id of the analogy to be deleted
             **kwargs: Other keyword arguments for clients other than `requests`
-
-        Returns:
-            dict: Client response body
         '''
         data = MultipartEncoder(fields={'vector_space_id': str(self.vector_space_id), 'analogy_id': str(analogy_id)})
         self._client.post_form(('/api/v0/space/%s/analogy/delete' % self.vector_space_id), data, kwargs)
 
     # Delete
 
-    def delete_vector_embeddings(self, vector_ids:list, **kwargs) -> object:
+    def delete_vector_embeddings(self, vector_ids:list, **kwargs)
         '''A function to delete vector embeddings that is stored in Vecto.
 
         Args:
             vector_ids (list): A list of vector ids to be deleted
             **kwargs: Other keyword arguments for clients other than `requests`
-
-        Returns:
-            dict: Client response body
         '''
 
         data = MultipartEncoder(fields=[('vector_space_id', str(self.vector_space_id))] + [('id', str(id)) for id in vector_ids])
-        response = self._client.post_form(('/api/v0/space/%s/delete' % self.vector_space_id), data, kwargs)
+        self._client.post_form(('/api/v0/space/%s/delete' % self.vector_space_id), data, kwargs)
         
 
-    def delete_vector_space_entries(self, **kwargs) -> object:
+    def delete_vector_space_entries(self, **kwargs)
         '''A function to delete the current vector space in Vecto. 
         All ingested entries will be deleted as well.
 
         Args:
             **kwargs: Other keyword arguments for clients other than `requests`
-
-        Returns:
-            dict: Client response body
         '''
 
         data = MultipartEncoder({'vector_space_id': str(self.vector_space_id)})
@@ -655,7 +646,7 @@ class Vecto():
 
 
     def ingest_image(self, batch_path_list:Union[str, list], attribute_list:Union[str, list], **kwargs) -> IngestResponse:
-        """A function that accepts a str or list of image paths and their attribute, formats it 
+        '''A function that accepts a str or list of image paths and their attribute, formats it 
         in a list of dicts to be accepted by the ingest function. 
 
         Args:
@@ -665,7 +656,7 @@ class Vecto():
 
         Returns:
             IngestResponse: named tuple that contains the list of index of ingested objects.
-        """
+        '''
 
         if type(batch_path_list) != list:
             batch_path_list = [batch_path_list]
@@ -690,7 +681,7 @@ class Vecto():
         return response
 
     def ingest_all_images(self, path_list:list, attribute_list:list, batch_size:int=64) -> List[IngestResponse]:
-        """A function that accepts a list of image paths and their attribute, then send them
+        '''A function that accepts a list of image paths and their attribute, then send them
         to the ingest_image function in batches.
 
         Args:
@@ -701,7 +692,7 @@ class Vecto():
 
         Returns:
             IngestResponse: named tuple that contains the list of index of ingested objects.
-        """
+        '''
         batch_count = math.ceil(len(path_list) / batch_size)
 
         path_batches = self._batch(path_list, batch_size)
@@ -719,7 +710,7 @@ class Vecto():
         return ingest_ids
 
     def ingest_text(self, batch_text_list:Union[str, list], attribute_list:Union[str, list], **kwargs) -> IngestResponse:
-        """A function that accepts a str or list of text and their attribute, formats it 
+        '''A function that accepts a str or list of text and their attribute, formats it 
         in a list of dicts to be accepted by the ingest function. 
 
         Args:
@@ -729,7 +720,7 @@ class Vecto():
 
         Returns:
             IngestResponse: named tuple that contains the list of index of ingested objects.
-        """
+        '''
 
         vecto_data = []
 
@@ -751,7 +742,7 @@ class Vecto():
         return response
 
     def ingest_all_text(self, text_list:list, attribute_list:list, batch_size=64) -> List[IngestResponse]:
-        """A function that accepts a list of text and their attribute, then send them
+        '''A function that accepts a list of text and their attribute, then send them
         to the ingest_text function in batches.
 
         Args:
@@ -762,7 +753,7 @@ class Vecto():
 
         Returns:
             IngestResponse: named tuple that contains the list of index of ingested objects.
-        """
+        '''
         
         batch_count = math.ceil(len(text_list) / batch_size)
 
@@ -801,6 +792,12 @@ class Vecto():
 
 
     def list_models(self, **kwargs) -> List[VectoModel]:
+        '''List all available models in the user's account.
+
+        Returns:
+            List[VectoModel]: A list of available VectoModel instances.
+        '''
+
         url = "/api/v0/account/model"
         response = self._client.get(url, **kwargs)
 
@@ -810,6 +807,11 @@ class Vecto():
         return [VectoModel(**r) for r in response.json()]
     
     def list_vector_spaces(self, **kwargs) -> List[VectoVectorSpace]:
+        '''List all available vector spaces in the user's account.
+
+        Returns:
+            List[VectoVectorSpace]: A list of available VectoVectorSpace instances.
+        '''
         url = "/api/v0/account/space"
         response = self._client.get(url, **kwargs)
 
@@ -822,6 +824,17 @@ class Vecto():
         ]
     
     def create_vector_space(self, name:str, model: Union[int, str], **kwargs) -> VectoVectorSpace:
+        '''Create a new vector space in the user's account.
+
+        Args:
+            name (str): The name of the new vector space.
+            model (int or str): The model identifier or name.
+            **kwargs: Other keyword arguments for clients other than `requests`
+
+        Returns:
+            VectoVectorSpace: The newly created VectoVectorSpace instance.
+        '''
+
         url = "/api/v0/account/space"
         id = self._get_model_type(model)
         json={'name': name, 'modelId': id}
@@ -832,6 +845,16 @@ class Vecto():
         return VectoVectorSpace(id=response_json["id"], model=VectoModel(**response_json["model"]), name=response_json["name"])
 
     def get_vector_space(self, id:int, **kwargs) -> VectoVectorSpace:
+        '''Retrieve a vector space by its ID.
+
+        Args:
+            id (int): The ID of the vector space.
+            **kwargs: Other keyword arguments for clients other than `requests`
+
+        Returns:
+            VectoVectorSpace: The VectoVectorSpace instance with the specified ID.
+        '''
+
         url = f"/api/v0/account/space/{id}"
         response = self._client.get(url, **kwargs)    
         response_json = response.json()
@@ -841,22 +864,60 @@ class Vecto():
 
     def get_vector_space_by_name(self, name:str, **kwargs) -> List[VectoVectorSpace]:
 
+        '''Retrieve a list of vector spaces by their name.
+
+        Args:
+            name (str): The name of the vector spaces.
+            **kwargs: Other keyword arguments for clients other than `requests`
+
+        Returns:
+            List[VectoVectorSpace]: A list of matching VectoVectorSpace instances.
+        '''
+
         vector_spaces = self.list_vector_spaces()
         matching_spaces = [vs for vs in vector_spaces if vs.name == name]
 
         return matching_spaces
 
     def rename_vector_space(self, id:str, new_name:str, **kwargs) -> VectoVectorSpace:
+        '''Rename an existing vector space by its ID.
+
+        Args:
+            id (str): The ID of the vector space.
+            new_name (str): The new name for the vector space.
+            **kwargs: Other keyword arguments for clients other than `requests`
+
+        Returns:
+            VectoVectorSpace: The renamed VectoVectorSpace instance.
+        '''
+
         url = f"/api/v0/account/space/{id}"
         json = {'name' : new_name}
         response = self._client.put_json(url, json=json, **kwargs)
         return VectoVectorSpace(**response.json())
 
     def delete_vector_space(self, id, **kwargs) -> object:
+        '''Delete a vector space by its ID.
+
+        Args:
+            id: The ID of the vector space to be deleted.
+            **kwargs: Other keyword arguments for clients other than `requests`
+
+        Returns:
+            object: None if the operation is successful.
+        '''
+
         url = f"/api/v0/account/space/{id}"
         self._client.delete(url, **kwargs)
 
     def delete_all_vector_spaces(self, **kwargs) -> object:
+        '''Delete all vector spaces in the user's account.
+
+        **kwargs: Other keyword arguments for clients other than `requests`
+
+        Returns:
+            object: None if the operation is successful.
+        '''
         vector_spaces = self.list_vector_spaces()
         
         for vs in vector_spaces:
@@ -865,25 +926,48 @@ class Vecto():
             except:
                 print("fail in deleting vs " + str(vs.name))
 
-    def list_analogies(self, vector_space_id, **kwargs) -> object:
-        url = f"/api/v0/account/space/{vector_space_id}/analogy"
-        response = self._client.get(url, **kwargs)
-        return response.json()
-    
-
     def get_user_information(self, **kwargs) -> VectoUser:
+        '''Retrieve the user information associated with the account.
+
+        **kwargs: Other keyword arguments for clients other than `requests`
+
+        Returns:
+            VectoUser: A VectoUser instance containing the user's information.
+        '''
+
         url = "/api/v0/account/user"
         response = self._client.get(url, **kwargs)
         return VectoUser(**response.json())
     
 
     def list_tokens(self, **kwargs) -> List[VectoToken]:
+
+        '''List all available tokens in the user's account.
+
+        **kwargs: Other keyword arguments for clients other than `requests`
+
+        Returns:
+            List[VectoToken]: A list of available VectoToken instances.
+        '''
+
         url = "/api/v0/account/tokens"
         response = self._client.get(url, **kwargs)
         return [VectoToken(**token) for token in response.json()]
     
 
     def create_token(self, token_name:str, tokenType:str, vectorSpaceIds:List[int], allowsAccessToAllVectorSpaces:bool, **kwargs) -> VectoNewTokenResponse:
+        '''Create a new token for the user's account.
+
+        Args:
+            token_name (str): The name of the new token.
+            tokenType (str): The type of the token, must be one of 'USAGE', 'PUBLIC', or 'ACCOUNT_MANAGEMENT'.
+            vectorSpaceIds (List[int]): A list of vector space IDs the token is associated with.
+            allowsAccessToAllVectorSpaces (bool): A flag indicating if the token allows access to all vector spaces.
+            **kwargs: Other keyword arguments for clients other than `requests`
+
+        Returns:
+            VectoNewTokenResponse: A VectoNewTokenResponse instance containing the newly created token information.
+        '''
 
         tokenType = tokenType.upper()
         if isinstance(vectorSpaceIds, int):
@@ -899,6 +983,19 @@ class Vecto():
     
 
     def delete_token(self, token_id:int, **kwargs):
+        '''Delete a token by its ID.
+
+        Args:
+            token_id (int): The ID of the token to be deleted.
+            **kwargs: Other keyword arguments for clients other than `requests`
+        '''
 
         url = f"/api/v0/account/tokens/{token_id}"
         self._client.delete(url, **kwargs)
+
+
+    def list_analogies(self, vector_space_id, **kwargs) -> object:
+        url = f"/api/v0/account/space/{vector_space_id}/analogy"
+        response = self._client.get(url, **kwargs)
+        return response.json()
+    
