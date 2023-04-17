@@ -91,3 +91,13 @@ MODEL_MAP = {
     2: "SBERT",
     3: "OPENAI"
 }
+
+
+class VectoAnalogy(NamedTuple):
+    '''A named tuple that contains a Vecto analogy attributes.'''
+    id: int
+    name: str
+    textAnalogyExampleIds: List
+    createdAt: str
+    updatedAt: str
+    vectorSpaceId: int
