@@ -69,9 +69,6 @@ class VectoToken(NamedTuple):
     name: str
     tokenType: str
     vectorSpaceIds: List[int]
-    accountId: Optional[int] = None
-    token : Optional[str] = None
-    updatedAt: Optional[str] =None
 
 class VectoNewTokenResponse(NamedTuple):
     '''A named tuple that contains a new create a Vecto token response attributes.'''
