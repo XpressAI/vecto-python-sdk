@@ -33,6 +33,8 @@ from .schema import (VectoIngestData, VectoEmbeddingData, VectoAttribute, VectoA
 
 class Client:
     def __init__(self, token:str, vecto_base_url: str, client) -> None:
+        if not token:
+            raise ValueError("Token not detected, please provide a valid token.")
         self.token = token
         self.vecto_base_url = vecto_base_url
         self.client = client
@@ -146,7 +148,10 @@ class Client:
         status_code = response.status_code
 
         if status_code == 400:
-            raise VectoException("Submitted data is incorrect, please check your request.")
+            if "vector_space_id" not in response.text:
+                raise VectoException("Submitted data is incorrect, please check your request.")
+            else:
+                raise VectoException("Request failed because a vector_space_id was not provided.")
         elif status_code == 401:
             raise UnauthorizedException()
         elif status_code == 403:
@@ -162,17 +167,14 @@ class Client:
 
 class Vecto():
 
-    def __init__(self, token:str, 
-                 vector_space_id:Union[int, str], 
+    def __init__(self, token:str=os.getenv("VECTO_API_KEY", None), 
+                 vector_space_id:Union[int, str]=None, 
                  vecto_base_url:str="https://api.vecto.ai", 
                  client=requests):
 
-        if (token is None) or (vector_space_id is None):
-
-            raise ValueError("Both token and vector space id are necessary.")
-
         self.vector_space_id = vector_space_id
         self._client = Client(token, vecto_base_url, client)
+
 
     ##########
     # Ingest #
