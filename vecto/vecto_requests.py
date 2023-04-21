@@ -210,7 +210,7 @@ class Vecto():
     # Lookup #
     ##########
 
-    def lookup(self, query:IO, modality:str, top_k:int, ids:list=None, **kwargs) -> List:
+    def lookup(self, query:IO, modality:str, top_k:int, ids:list=None, **kwargs) -> List[LookupResult]:
         '''A function to search on Vecto, based on the lookup item.
 
         Args:
@@ -257,7 +257,7 @@ class Vecto():
             raise ValueError(f'Invalid URL: {url}')
     
 
-    def lookup_image_from_url(self, query:str, top_k:int, ids:list=None, **kwargs) -> List:
+    def lookup_image_from_url(self, query:str, top_k:int, ids:list=None, **kwargs) -> List[LookupResult]:
         '''A function to perform image search on Vecto by passing it an url.
 
         Args:
@@ -276,7 +276,7 @@ class Vecto():
         return response
     
 
-    def lookup_image_from_filepath(self, query:Union[str, pathlib.Path, os.PathLike], top_k:int, ids:list=None, **kwargs) -> List:
+    def lookup_image_from_filepath(self, query:Union[str, pathlib.Path, os.PathLike], top_k:int, ids:list=None, **kwargs) -> List[LookupResult]:
         '''A function to perform image search on Vecto by passing it an image path.
 
         Args:
@@ -299,7 +299,7 @@ class Vecto():
 
         return response
 
-    def lookup_image_from_binary(self, query:IO, top_k:int, ids:list=None, **kwargs) -> List:
+    def lookup_image_from_binary(self, query:IO, top_k:int, ids:list=None, **kwargs) -> List[LookupResult]:
         '''A function to perform image search on Vecto.
 
         Args:
@@ -316,7 +316,7 @@ class Vecto():
 
         return response
 
-    def lookup_text_from_str(self, query:str, top_k:int, ids:list=None, **kwargs) -> List:
+    def lookup_text_from_str(self, query:str, top_k:int, ids:list=None, **kwargs) -> List[LookupResult]:
         '''A function to perform text search on Vecto by passing it a string.
 
         Args:
@@ -334,7 +334,7 @@ class Vecto():
         return response
 
 
-    def lookup_text_from_filepath(self, query:Union[str, pathlib.Path, os.PathLike], top_k:int, ids:list=None, **kwargs) -> List:
+    def lookup_text_from_filepath(self, query:Union[str, pathlib.Path, os.PathLike], top_k:int, ids:list=None, **kwargs) -> List[LookupResult]:
         '''A function to perform text search on Vecto by providing it a readable text file path.
 
         Args:
@@ -359,7 +359,7 @@ class Vecto():
         return response
 
 
-    def lookup_text_from_url(self, query:str, top_k:int, ids:list=None, **kwargs) -> List:
+    def lookup_text_from_url(self, query:str, top_k:int, ids:list=None, **kwargs) -> List[LookupResult]:
         '''A function to perform text search on Vecto by passing it an url.
 
         Args:
@@ -378,7 +378,7 @@ class Vecto():
         return response
     
 
-    def lookup_text_from_binary(self, query:IO, top_k:int, ids:list=None, **kwargs) -> List:
+    def lookup_text_from_binary(self, query:IO, top_k:int, ids:list=None, **kwargs) -> List[LookupResult]:
         '''A function to perform text search on Vecto by passing it an IO object.
 
         Args:
@@ -486,7 +486,7 @@ class Vecto():
         return analogy_fields
 
 
-    def compute_analogy(self, query:IO, analogy_start_end:Union[VectoAnalogyStartEnd, List[VectoAnalogyStartEnd]], top_k:int, modality:str, **kwargs) -> List : # can be text or images
+    def compute_analogy(self, query:IO, analogy_start_end:Union[VectoAnalogyStartEnd, List[VectoAnalogyStartEnd]], top_k:int, modality:str, **kwargs) -> List[LookupResult] : # can be text or images
         '''A function to compute an analogy using Vecto.
         It is also possible to do multiple analogies in one request body.
         The computed analogy is not stored in Vecto.
@@ -523,7 +523,7 @@ class Vecto():
         return[LookupResult(**r) for r in response.json()['results']]
 
 
-    def compute_text_analogy(self, query:IO, analogy_start_end:Union[VectoAnalogyStartEnd, List[VectoAnalogyStartEnd]], top_k:int, **kwargs) -> List: 
+    def compute_text_analogy(self, query:IO, analogy_start_end:Union[VectoAnalogyStartEnd, List[VectoAnalogyStartEnd]], top_k:int, **kwargs) -> List[LookupResult]: 
         '''A function to compute a Text analogy using Vecto.
         It is also possible to do multiple analogies in one request body.
         The computed analogy is not stored in Vecto.
@@ -544,7 +544,7 @@ class Vecto():
 
         return response
 
-    def compute_image_analogy(self, query:IO, analogy_start_end:Union[VectoAnalogyStartEnd, List[VectoAnalogyStartEnd]], top_k:int, **kwargs) -> List: 
+    def compute_image_analogy(self, query:IO, analogy_start_end:Union[VectoAnalogyStartEnd, List[VectoAnalogyStartEnd]], top_k:int, **kwargs) -> List[LookupResult]: 
         '''A function to compute an IMAGE analogy using Vecto.
         It is also possible to do multiple analogies in one request body.
         The computed analogy is not stored in Vecto.
@@ -1043,4 +1043,3 @@ class Vecto():
         '''
         url = f"/api/v0/account/space/{vector_space_id}/analogy"
         self._client.delete(url, **kwargs)
-    
