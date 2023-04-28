@@ -610,11 +610,9 @@ class TestExceptions:
         token = 0
         vector_space_id = 0
 
-        invalid_user_vecto = Vecto(token, vector_space_id, vecto_base_url=vecto_base_url)
 
         with pytest.raises(VectoException) as e:
-
-            invalid_user_vecto.lookup("BLUE", modality='TEXT', top_k=100)
+            invalid_user_vecto = Vecto(token, vector_space_id, vecto_base_url=vecto_base_url)
 
     #Test ingesting multiple images with invalid source attribute into Vecto
     def test_ingest_image_with_invalid_source(self):

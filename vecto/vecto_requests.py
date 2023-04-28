@@ -34,7 +34,7 @@ from .schema import (VectoIngestData, VectoEmbeddingData, VectoAttribute, VectoA
 class Client:
     def __init__(self, token:str, vecto_base_url: str, client) -> None:
         if not token:
-            raise ValueError("Token not detected, please provide a valid token.")
+            raise VectoException("Token not detected, please provide a valid token.")
         self.token = token
         self.vecto_base_url = vecto_base_url
         self.client = client
