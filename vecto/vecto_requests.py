@@ -30,142 +30,21 @@ from .schema import (VectoIngestData, VectoEmbeddingData, VectoAttribute, VectoA
                     IngestResponse, LookupResult, VectoModel, VectoVectorSpace, VectoUser,
                     VectoToken, VectoNewTokenResponse, MODEL_MAP, VectoAnalogy)
 
-
-class Client:
-    def __init__(self, token:str, vecto_base_url: str, client) -> None:
-        if not token:
-            raise VectoException("Token not detected, please provide a valid token.")
-        self.token = token
-        self.vecto_base_url = vecto_base_url
-        self.client = client
-        
-
-    def get(self, url, **kwargs):
-
-        self.validate_input(url=url)
-        headers = {"Authorization": "Bearer %s" % self.token}
-        response = self.client.get("%s/%s" % (self.vecto_base_url, url),
-                                        headers=headers,
-                                        **kwargs)
-        
-        self.check_common_error(response)
-        return response
-
-
-    def put(self, url, json=None, data=None, files=None, **kwargs):
-
-        self.validate_input(url=url, data=data, files=files)
-        headers = {"Authorization": "Bearer %s" % self.token}
-        response = self.client.put("%s/%s" % (self.vecto_base_url, url),
-                                        headers=headers,
-                                        **kwargs)
-        self.check_common_error(response)
-        return response
-    
-    def put_json(self, url, json, **kwargs):
-
-        self.validate_input(url=url)
-        headers = {"Authorization": "Bearer %s" % self.token, 'Content-Type': 'application/json'}
-        response = self.client.put("%s/%s" % (self.vecto_base_url, url),
-                                        json=json,
-                                        headers=headers,
-                                        **kwargs)
-        self.check_common_error(response)
-        return response
-
-
-    def delete(self, url, data=None, files=None, **kwargs):
-
-        self.validate_input(url=url, data=data, files=files)
-        headers = {"Authorization": "Bearer %s" % self.token}
-        response = self.client.delete("%s/%s" % (self.vecto_base_url, url),
-                                        data=data,
-                                        files=files,
-                                        headers=headers,
-                                        **kwargs)
-        self.check_common_error(response)
-        return response
-
-    def post(self, url, data, files, **kwargs):
-
-        self.validate_input(url=url, data=data, files=files)
-        headers = {"Authorization": "Bearer %s" % self.token}
-        response = self.client.post("%s/%s" % (self.vecto_base_url, url),
-                                        data=data,
-                                        files=files,
-                                        headers=headers,
-                                        **kwargs)
-        self.check_common_error(response)
-        return response
-
-    def post_json(self, url, json, **kwargs):
-
-        self.validate_input(url=url)
-        headers = {"Authorization": "Bearer %s" % self.token, 'Content-Type': 'application/json'}
-        response = self.client.post("%s/%s" % (self.vecto_base_url, url),
-                                        json=json,
-                                        headers=headers,
-                                        **kwargs)
-        self.check_common_error(response)
-        return response
-
-    def post_form(self, url, data, kwargs=None):
-
-        self.validate_input(url=url, data=data)
-        headers = {"Authorization": "Bearer %s" % self.token, 'Content-Type': data.content_type}
-        response = self.client.post("%s/%s" % (self.vecto_base_url, url),
-                                data=data,
-                                headers=headers,
-                                **kwargs)
-
-        self.check_common_error(response)
-        return response
-
-
-    def validate_input(self, url=None, data=None, files=None, headers=None):
-
-        def _check_input_buffer(files):
-            '''Currently ingest files are formatted as:
-            [('input', ('_', <_io.BufferedReader name='file.png'>, '_'))]
-            '''
-
-            for file in files:
-                for ingest_input in file:
-                    for buffer in ingest_input:
-                        if str(buffer.__class__.__name__) == "BufferedReader":
-                            if buffer.peek() == b'':
-                                raise ConsumedResourceException()
-
-        if files != None:
-            _check_input_buffer(files)
-
-
-    def check_common_error(self, response):
-
-        if response.ok:
-            return
-
-        status_code = response.status_code
-
-        if status_code == 400:
-            if "vector_space_id" not in response.text:
-                raise VectoException("Submitted data is incorrect, please check your request.")
-            else:
-                raise VectoException("Request failed because a vector_space_id was not provided.")
-        elif status_code == 401:
-            raise UnauthorizedException()
-        elif status_code == 403:
-            raise ForbiddenException()
-        elif status_code == 404:
-            raise NotFoundException()
-        elif 500 <= status_code <= 599:
-            raise ServiceException()
-        else:
-            raise VectoException("Error status code ["+str(status_code)+"].")
-
-
+from .client import Client
 
 class Vecto():
+    '''
+    Initializes a new Vecto object with the provided configuration.
+
+    `user_vecto = Vecto(token, vector_space_id)`
+
+    Args:
+        token (str): The API token used for authentication with the Vecto API.
+                        Defaults to the value of the VECTO_API_KEY environment variable.
+        vector_space_id (Union[int, str]): The ID of the vector space to interact with.
+        vecto_base_url (str): The base URL of the Vecto API. Defaults to "https://api.vecto.ai".
+        client: The HTTP client used to send requests to the Vecto API. Defaults to the "requests" library.
+    '''
 
     def __init__(self, token:str=os.getenv("VECTO_API_KEY", None), 
                  vector_space_id:Union[int, str]=None, 
@@ -242,14 +121,14 @@ class Vecto():
         from urllib.request import urlopen
         from urllib.parse import urlparse
 
-        def is_url(s: str) -> bool:
+        def _is_url(s: str) -> bool:
             try:
                 result = urlparse(s)
                 return all([result.scheme, result.netloc])
             except ValueError:
                 return False
 
-        if is_url(url):
+        if _is_url(url):
             content = urlopen(url).read()
             binary_stream = io.BytesIO(content)
             return binary_stream
@@ -399,16 +278,13 @@ class Vecto():
     # Update #
     ##########
 
-    def update_vector_embeddings(self, embedding_data: Union[VectoEmbeddingData, List[VectoEmbeddingData]], modality:str, **kwargs) -> object:
+    def update_vector_embeddings(self, embedding_data: Union[VectoEmbeddingData, List[VectoEmbeddingData]], modality:str, **kwargs):
         '''A function to update current vector embeddings with new one.
 
         Args:
             embedding_data (VectoEmbeddingData or list of VectoEmbeddingData): data that contains the embedding data to be updated. 
             modality (str): The type of the file - "IMAGE" or "TEXT"
             **kwargs: Other keyword arguments for clients other than `requests`
-
-        Returns:
-            dict: Client response body
         '''
 
         if type(embedding_data) != list:
@@ -421,9 +297,7 @@ class Vecto():
         files = [('input', ('_', r['data'], '_')) for r in embedding_data]
 
         data={'vector_space_id': self.vector_space_id, 'id': vector_id, 'modality': modality}
-        response = self._client.post(('/api/v0/space/%s/update/vectors' % self.vector_space_id), data=data, files=files, **kwargs) 
-
-        return response
+        self._client.post(('/api/v0/space/%s/update/vectors' % self.vector_space_id), data=data, files=files, **kwargs) 
 
 
     def update_vector_attribute(self, update_attribute: Union[VectoAttribute, List[VectoAttribute]], **kwargs) -> object:
@@ -486,7 +360,7 @@ class Vecto():
         return analogy_fields
 
 
-    def compute_analogy(self, query:IO, analogy_start_end:Union[VectoAnalogyStartEnd, List[VectoAnalogyStartEnd]], top_k:int, modality:str, **kwargs) -> List[LookupResult] : # can be text or images
+    def compute_analogy(self, query:IO, analogy_start_end:Union[VectoAnalogyStartEnd, List[VectoAnalogyStartEnd]], top_k:int, modality:str, **kwargs) -> List[LookupResult]:
         '''A function to compute an analogy using Vecto.
         It is also possible to do multiple analogies in one request body.
         The computed analogy is not stored in Vecto.
@@ -523,35 +397,37 @@ class Vecto():
         return[LookupResult(**r) for r in response.json()['results']]
 
 
-    def compute_text_analogy(self, query:IO, analogy_start_end:Union[VectoAnalogyStartEnd, List[VectoAnalogyStartEnd]], top_k:int, **kwargs) -> List[LookupResult]: 
-        '''A function to compute a Text analogy using Vecto.
+    def compute_text_analogy(self, query: IO, analogy_start_end: Union[VectoAnalogyStartEnd, List[VectoAnalogyStartEnd]], top_k: int, **kwargs) -> List[LookupResult]:
+        '''
+        A function to compute a Text analogy using Vecto.
         It is also possible to do multiple analogies in one request body.
         The computed analogy is not stored in Vecto.
 
         Args:
             query (IO): query in the form of an IO object query.
-            analogy_start_end (VectoAnalogyStartEnd or list of VectoAnalogyStartEnd): start and end analogy to be computed. 
+            analogy_start_end (VectoAnalogyStartEnd or list of VectoAnalogyStartEnd): start and end analogy to be computed.
                 You may use io.StringIO(text) for TEXT data.
             top_k (int): The number of results to return
             **kwargs: Other keyword arguments for clients other than `requests`
 
         Returns:
             list of LookupResult named tuples, where LookResult is named tuple with `data`, `id`, and `similarity` keys.
-
         '''
 
         response = self.compute_analogy(query, analogy_start_end, top_k, 'TEXT')
 
         return response
 
-    def compute_image_analogy(self, query:IO, analogy_start_end:Union[VectoAnalogyStartEnd, List[VectoAnalogyStartEnd]], top_k:int, **kwargs) -> List[LookupResult]: 
-        '''A function to compute an IMAGE analogy using Vecto.
+
+    def compute_image_analogy(self, query: IO, analogy_start_end: Union[VectoAnalogyStartEnd, List[VectoAnalogyStartEnd]], top_k: int, **kwargs) -> List[LookupResult]:
+        '''
+        A function to compute an IMAGE analogy using Vecto.
         It is also possible to do multiple analogies in one request body.
         The computed analogy is not stored in Vecto.
 
         Args:
             query (IO): query in the form of an IO object query.
-            analogy_start_end (VectoAnalogyStartEnd or list of VectoAnalogyStartEnd): start and end analogy to be computed. 
+            analogy_start_end (VectoAnalogyStartEnd or list of VectoAnalogyStartEnd): start and end analogy to be computed.
                 Use open(path, 'rb') for IMAGE data.
             top_k (int): The number of results to return
             **kwargs: Other keyword arguments for clients other than `requests`
@@ -898,27 +774,21 @@ class Vecto():
         response = self._client.put_json(url, json=json, **kwargs)
         return VectoVectorSpace(**response.json())
 
-    def delete_vector_space(self, id, **kwargs) -> object:
+    def delete_vector_space(self, id, **kwargs):
         '''Delete a vector space by its ID.
 
         Args:
             id: The ID of the vector space to be deleted.
             **kwargs: Other keyword arguments for clients other than `requests`
-
-        Returns:
-            object: None if the operation is successful.
         '''
 
         url = f"/api/v0/account/space/{id}"
         self._client.delete(url, **kwargs)
 
-    def delete_all_vector_spaces(self, **kwargs) -> object:
+    def delete_all_vector_spaces(self, **kwargs):
         '''Delete all vector spaces in the user's account.
 
         **kwargs: Other keyword arguments for clients other than `requests`
-
-        Returns:
-            object: None if the operation is successful.
         '''
         vector_spaces = self.list_vector_spaces()
         

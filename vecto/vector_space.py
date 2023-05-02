@@ -6,7 +6,7 @@ from .exceptions import InvalidModality
 from urllib.parse import urlparse
 import pathlib
 
-class VectorSpace:
+class VectorSpace():
     '''
     Initialize the VectorSpace class.
 
