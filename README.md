@@ -19,51 +19,79 @@ pip install vecto-sdk
 ```
 
 
+For the token, sign up for your access [here](https://www.vecto.ai/contactus).
+
+
 ## Building the Wheel
 If you would like to build your own wheel, run `python setup.py bdist_wheel --universal` which creates a .whl file in the dist folder. You can install that wheel file with `pip install dist/vecto-*.whl` into your current environment (if the file is in the current working directory).
-    
+
 ## Sample Usage
 
-```
-import Vecto from vecto
-vs = Vecto(token="YOUR_TOKEN", vector_space_id=YOUR_ID)
+For first time users, we recommend using our `VectorSpace` interface.
 
-vs.lookup("Blue", "TEXT", top_k=5)
-```
-
-Sign up for your access [here](https://www.vecto.ai/contactus). 
-
-
-## Available Functions
+### Find Nearest Neighbors
 
 ```
-    ingest
-        ingest a batch of data into Vecto. Use batch of 1 for single entry.
+import vecto
+vecto.api_key = os.getenv("VECTO_API_KEY", "")
+vector_space = vecto.VectorSpace("my-cool-ai")
 
-    ingest_image
-        ingest a batch of images into Vecto. Use batch of 1 for single image.
-    
-    ingest_text
-        ingest a batch of text into Vecto.  Use batch of 1 for single text.
-    
-    lookup
-        search on Vecto, based on the lookup item.
-    
-    update_vector_embeddings
-        update current vector embeddings with new one.
+for animal in ["lion", "wolf", "cheetah", "giraffe", "elephant", "rhinoceros", "hyena", "zebrah"]:
+    vector_space.ingest_text(animal, { 'text': animal, 'region': 'Africa' })
 
-    update_vector_attribute
-        update current vector attribute with new one.
+similar_animals = vector_space.lookup_text("cat", top_k=3)
+                        
+for animal in similar_animals:
+    print(f"{animal.attributes['text']} similarity: {animal.similarity:.2%}")
 
-    compute_analogy
-        compute an analogy from Vecto.
-
-    delete_vector_embeddings
-        delete vector embeddings that is stored in Vecto.
-
-    delete_vector_space_entries
-        delete the current vector space in Vecto. All ingested entries will be deleted as well.
+# Prints: "lion similarity: 84.91%"
 ```
+
+### Ingest Text or Images
+```
+import vecto
+from pathlib import Path
+vecto.api_key = os.getenv("VECTO_API_KEY", "")
+vector_space = vecto.VectorSpace("my-cool-image-ai")
+
+if not vector_space.exists():
+    vector_space.create(model='CLIP', modality='IMAGE') 
+
+for animal in ["lion.png", "wolf.png", "cheetah.png", "giraffe.png", "elephant.png", "rhinoceros.png", "hyena.png", "zebra.png"]:
+    vector_space.ingest_image(Path(animal), { 'text': animal.replace('.png', ''), 'region': 'Africa' })
+
+similar_animals = vector_space.lookup_image(Path("cat.png"), top_k=1)
+
+for animal in similar_animals:
+    print(f"{animal.attributes['text']}")
+
+# Prints: lion
+```
+
+### Looking up by Analogy
+
+
+```
+import vecto
+vecto.api_key = os.getenv("VECTO_API_KEY", "")
+vector_space = vecto.VectorSpace("word_space")
+
+if not vector_space.exists():
+    vector_space.create(model='SBERT', modality='TEXT') 
+
+for word in ["man", "woman", "child", "mother", "father", "boy", "girl", "king", "queen"]:
+    vector_space.ingest_text(word, { 'text': word })
+
+analogy = vector_space.compute_text_analogy("king", { 'start': 'man', 'end': 'woman' }, top_k=3)
+
+for word in analogy:
+    print(f"{word.attributes['text']} similarity: {word.similarity:.2%}")
+
+# Prints: "queen similarity: 93.41%"
+```
+
+For more advanced capabilities including management access, we recommend using the core Vecto class.
+
 
 ## Running the Tests
 We've setup an [action](https://github.com/XpressAI/vecto-python-sdk/actions/workflows/run-tests.yml) to automate the API tests. If you'd like to run the tests locally, export a valid `user_token`, `public_token`, and `vector_space_id`, then run:

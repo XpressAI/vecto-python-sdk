@@ -13,13 +13,14 @@
 # limitations under the License.
 
 import io
-from vecto import Vecto, vecto_toolbelt
+from vecto import Vecto
 from vecto.exceptions import VectoException, ForbiddenException, ServiceException
 from test_util import DatabaseTwin, TestDataset
 import random
 import logging
 import pytest
 import json
+import pathlib
 
 '''
 Please ensure that you have token, vecto_base_url and vector_space_id
@@ -52,8 +53,8 @@ def test_clear_vector_space_entries():
     f = io.StringIO('blue')
     lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
     
-    logger.info("Checking if there's 0 lookup results: " + str(len(lookup_response.results) == 0))
-    assert len(lookup_response.results) is 0
+    logger.info("Checking if there's 0 lookup results: " + str(len(lookup_response) == 0))
+    assert len(lookup_response) is 0
 
 
 @pytest.mark.ingest
@@ -63,7 +64,7 @@ class TestIngesting:
     def test_ingest_single_image(self):
         image = TestDataset.get_random_image()
         attribute = TestDataset.get_image_attribute(image)
-        response = vecto_toolbelt.ingest_image(user_vecto, image, attribute['data'])
+        response = user_vecto.ingest_image(image, attribute['data'])
 
         assert response is not None
 
@@ -85,7 +86,7 @@ class TestIngesting:
         
         batch = TestDataset.get_image_dataset()[:5]
         attribute = TestDataset.get_image_attribute(batch)
-        response = vecto_toolbelt.ingest_image(user_vecto, batch, attribute['data'])
+        response = user_vecto.ingest_image(batch, attribute['data'])
         results = response.ids
         user_db_twin.update_database(results, attribute['data'])
         ref_db = user_db_twin.get_database()
@@ -144,7 +145,7 @@ class TestIngesting:
         text = TestDataset.get_random_text(TestDataset.get_color_dataset)
         index = [0]
         attribute = TestDataset.get_text_attribute(index, text)
-        response = vecto_toolbelt.ingest_text(user_vecto, text, attribute)
+        response = user_vecto.ingest_text(text, attribute)
         results = response.ids
 
         user_db_twin.update_database(results, attribute)
@@ -163,7 +164,7 @@ class TestIngesting:
     def test_ingest_text(self):
         batch = TestDataset.get_color_dataset()
         attribute = TestDataset.get_text_attribute(batch.index.tolist()[:5], batch.tolist()[:5])
-        response = vecto_toolbelt.ingest_text(user_vecto, batch.tolist()[:5], attribute)
+        response = user_vecto.ingest_text(batch.tolist()[:5], attribute)
         results = response.ids
         user_db_twin.update_database(results, attribute)
         ref_db = user_db_twin.get_database()
@@ -182,16 +183,16 @@ class TestIngesting:
         ref_db = user_db_twin.get_database()
 
         logger.info('Length of ref_df is :' + str(len(ref_db)))
-        assert len(ref_db) is len(user_vecto.lookup(" ", modality='TEXT', top_k=100).results)
+        assert len(ref_db) is len(user_vecto.lookup(" ", modality='TEXT', top_k=100))
 
 @pytest.mark.lookup
 class TestLookup:
     
     # Test doing lookup / search using text on Vecto
-    def test_lookup_text(self):
+    def test_lookup_on_text(self):
         f = io.StringIO('blue')
         response_k5 = user_vecto.lookup(f, modality='TEXT', top_k=5)
-        results_k5 = response_k5.results
+        results_k5 = response_k5
 
         # logger.info(response_k5)
         # assert response_k5.status_code is 200
@@ -207,7 +208,7 @@ class TestLookup:
 
         # top_k=100 is to return everything in the vector space
         response_k100 = user_vecto.lookup(f, modality='TEXT', top_k=100)
-        results_k100 = response_k100.results
+        results_k100 = response_k100
 
         # logger.info(response_k100)
         # assert response_k100.status_code is 200
@@ -222,11 +223,11 @@ class TestLookup:
         assert isinstance(results_k100[-1].similarity, float)
     
     # Test doing lookup / search using image on Vecto
-    def test_lookup_image(self):
+    def test_lookup_on_image(self):
         query = TestDataset.get_random_image()[0]
         with open(query, 'rb') as f:
             response_k5 = user_vecto.lookup(f, modality='IMAGE', top_k=5)
-        results_k5 = response_k5.results
+        results_k5 = response_k5
 
         assert response_k5 is not None
         logger.info("Checking if there's 5 lookup results: " + str(len(results_k5) == 5))
@@ -240,7 +241,7 @@ class TestLookup:
 
         with open(query, 'rb') as f:
             response_k100 = user_vecto.lookup(f, modality='IMAGE', top_k=100)
-        results_k100 = response_k100.results
+        results_k100 = response_k100
 
         assert response_k100 is not None
         logger.info("Checking if there's 17 lookup results: " + str(len(results_k100) == 17))
@@ -251,6 +252,92 @@ class TestLookup:
         assert results_k100[round(len(results_k100) / 2)].id is not None
         logger.info("Checking if values in 'similarity' is float: " + str(isinstance(results_k100[-1].similarity, float)))
         assert isinstance(results_k100[-1].similarity, float) 
+
+
+    # Test using lookup_image and lookup_text on Vecto
+    def test_lookup_image_from_filepath(self):
+
+        query = TestDataset.get_random_image()[0]
+        logger.info("Checking that lookup_text_from_filepath can handle file paths")
+        assert user_vecto.lookup_image_from_filepath(query, 5) is not None
+
+        invalid_path = "/path/to/nonexistent/image.jpg"
+        logger.info("Checking that lookup_text_from_filepath correctly detects an incorrect file path")
+
+        with pytest.raises(FileNotFoundError, match="The file was not found."):
+            user_vecto.lookup_image_from_filepath(invalid_path, 5)
+
+
+    def test_lookup_image_from_url(self):
+
+        logger.info("Checking that the method returns results when given a valid image URL")
+        url = 'https://picsum.photos/300/200'
+        response = user_vecto.lookup_image_from_url(url, 5)
+        assert response is not None
+
+        logger.info("Checking that lookup_image_from_url correctly detects an invalid URL")
+        from urllib.error import URLError
+
+        invalid_url = "http://invalid-url.example.com!/image.jpg"
+        try:
+            user_vecto.lookup_image_from_url(invalid_url, 5)
+        
+        except URLError:
+            logger.info("URLError raised as expected")
+        else:
+            logger.error("Expected URLError not raised")
+
+    def test_lookup_image_from_binary(self):
+
+        logger.info("Checking that the method returns results when given text data as a file-like object")
+        query = TestDataset.get_random_image()[0]
+        with open(query, 'rb') as f:
+            assert user_vecto.lookup_image_from_binary(f, 5) is not None
+
+    def test_lookup_text_from_path(self):
+
+        logger.info("Checking that the method returns results when given a valid file path")
+        query = os.path.join("tests", "demo_dataset", "blue.txt")
+        assert user_vecto.lookup_text_from_filepath(query, 5) is not None
+
+        logger.info("Checking that an exception is raised when the file path is invalid")
+        non_existing_path = pathlib.Path("non_existing_file.txt")
+        
+        with pytest.raises(FileNotFoundError):
+            user_vecto.lookup_text_from_filepath(non_existing_path, top_k=5)
+
+    def test_lookup_text_from_str(self):
+
+        logger.info("Checking that the method returns results when given text data as a string")
+        assert user_vecto.lookup_text_from_str('blue', 5) is not None
+
+
+    def test_lookup_text_from_url(self):
+
+        logger.info("Checking that the method returns results when given a valid image URL")
+        url = 'https://raw.githubusercontent.com/XpressAI/vecto-python-sdk/main/tests/demo_dataset/blue.txt'
+        response = user_vecto.lookup_text_from_url(url, 5)
+        assert response is not None
+
+        logger.info("Checking that lookup_text_from_url correctly detects an invalid URL")
+        from urllib.error import URLError
+
+        invalid_url = "http://invalid-url.example.com/text.txt"
+        try:
+            user_vecto.lookup_text_from_url(invalid_url, 5)
+        
+        except URLError:
+            logger.info("URLError raised as expected")
+        else:
+            logger.error("Expected URLError not raised")
+
+
+    def test_lookup_text_from_binary(self):
+
+        logger.info("Checking that the method returns results when given text data as a file-like object")
+        f = io.StringIO('blue')
+        assert user_vecto.lookup_text_from_binary(f, 5) is not None
+
 
 @pytest.mark.update
 class TestUpdating:
@@ -338,7 +425,7 @@ class TestUpdating:
         # Just a dummy lookup to return the specified ID - check specific entry
         f = io.StringIO('blue')
         lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=1, ids=vector_id)
-        results = lookup_response.results[0]
+        results = lookup_response[0]
 
         logger.info("Checking if attribute is updated: " + str(results.attributes == new_attribute))
         assert results.attributes == new_attribute
@@ -349,7 +436,7 @@ class TestUpdating:
         lookup_attribute = []
 
         #need to iterate though this object
-        for result in lookup_response.results:
+        for result in lookup_response:
             if result.id != vector_id:
                 lookup_attribute.append([result.id, result.attributes])
         logger.info("Checking if other attribute is not updated...")
@@ -378,7 +465,7 @@ class TestUpdating:
         
         # Just a dummy lookup to return all the data in the vector space - check other entries
         f = io.StringIO('blue')
-        lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=batch_len, ids=vector_ids).results
+        lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=batch_len, ids=vector_ids)
         lookup_attribute = []
         for result in lookup_response:
             if result.id in vector_ids:
@@ -392,7 +479,7 @@ class TestUpdating:
         f = io.StringIO('blue')
         lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
         lookup_attribute = []
-        for result in lookup_response.results:
+        for result in lookup_response:
             if result.id != vector_ids:
                 lookup_attribute.append([result.id, result.attributes])
 
@@ -417,7 +504,7 @@ class TestAnalogy:
         top_k = 10
         modality = 'TEXT'
         response = user_vecto.compute_analogy(query, analogy_start_end, top_k, modality)
-        results = response.results
+        results = response
 
         assert response is not None
         logger.info("Checking if number of lookup results is equal to top_k: " + str(len(results) == top_k))
@@ -458,7 +545,7 @@ class TestDelete:
 
         f = io.StringIO('blue')
         lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
-        results = lookup_response.results
+        results = lookup_response
         deleted_ids = user_db_twin.get_deleted_ids()
        
         logger.info("Checking if the length of result is 11: " + str(len(results) == (len(ref_db) - len(deleted_ids))))
@@ -479,7 +566,7 @@ class TestDelete:
 
         f = io.StringIO('blue')
         lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
-        results = lookup_response.results
+        results = lookup_response
        
         logger.info("Checking if the length of result is 6: " + str(len(results) == (len(ref_db) - len(deleted_ids))))
         assert len(results) is (len(ref_db) - len(deleted_ids))
@@ -493,7 +580,7 @@ class TestExceptions:
 
         user_vecto.delete_vector_space_entries()
         batch = TestDataset.get_profession_dataset()
-        response = vecto_toolbelt.ingest_text(user_vecto, batch, batch)
+        response = user_vecto.ingest_text(batch, batch)
         results = response.ids
         user_db_twin.update_database(results, batch)
 
@@ -511,7 +598,7 @@ class TestExceptions:
         top_k = 20
         modality = 'TEXT'
         response = user_vecto.compute_analogy(query, analogy_start_end, top_k, modality)
-        results = response.results
+        results = response
 
         logger.info("Checking if values in 'data' is queen: " + str(isinstance(results[0].attributes, str)))
         
@@ -523,11 +610,9 @@ class TestExceptions:
         token = 0
         vector_space_id = 0
 
-        invalid_user_vecto = Vecto(token, vector_space_id, vecto_base_url=vecto_base_url)
 
         with pytest.raises(VectoException) as e:
-
-            invalid_user_vecto.lookup("BLUE", modality='TEXT', top_k=100)
+            invalid_user_vecto = Vecto(token, vector_space_id, vecto_base_url=vecto_base_url)
 
     #Test ingesting multiple images with invalid source attribute into Vecto
     def test_ingest_image_with_invalid_source(self):

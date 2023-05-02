@@ -36,6 +36,8 @@ jobs:
         vector_space_id : ${{ secrets.VECTOR_SPACE_ID }}
         user_token: ${{ secrets.USER_TOKEN }}
         vecto_base_url:  ${{ secrets.VECTO_BASE_URL }}
+        management_token:  ${{ secrets.MANAGEMENT_TOKEN }}
+
 
       run: |
         pytest tests/test_sdk.py
