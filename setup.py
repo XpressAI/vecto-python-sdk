@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-    name='vecto',
+    name='vecto-sdk',
     version='0.1.0',
     packages=['vecto'],
     install_requires=[
