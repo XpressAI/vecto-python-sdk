@@ -22,9 +22,7 @@ import os
 import pathlib
 
 from typing import IO, List, Union
-from .exceptions import ( VectoException, UnauthorizedException, UnpairedAnalogy, 
-                        ForbiddenException, NotFoundException, ServiceException, 
-                        InvalidModality, ConsumedResourceException, ModelNotFoundException )
+from .exceptions import (UnpairedAnalogy, InvalidModality, ModelNotFoundException )
 
 from .schema import (VectoIngestData, VectoEmbeddingData, VectoAttribute, VectoAnalogyStartEnd,
                     IngestResponse, LookupResult, VectoModel, VectoVectorSpace, VectoUser,
@@ -502,26 +500,27 @@ class Vecto():
     # Toolbelt Utils #
     ##################
 
-    try:
-        from tqdm import tqdm
-        progress_bar = True
-    except ImportError:
-        progress_bar = False
+    @property
+    def progress_bar(self):
+        try:
+            from tqdm import tqdm
+            return True
+        except ImportError:
+            return False
 
-    @classmethod
-    def _custom_progress_bar(self, iterable, desc=None, total=None, progress_bar=False):
-        if progress_bar:
+    def _custom_progress_bar(self, iterable, desc=None, total=None):
+        if self.progress_bar:
+            from tqdm import tqdm
             return tqdm(iterable, desc=desc, total=total)
         else:
             return iterable
+        
 
-    @classmethod
     def _batch(self, input_list: list, batch_size:int):
         
         batch_count = math.ceil(len(input_list) / batch_size)
         for i in range(batch_count):
             yield input_list[i * batch_size : (i+1) * batch_size]
-
 
     def ingest_image(self, batch_path_list:Union[str, list], attribute_list:Union[str, list], **kwargs) -> IngestResponse:
         '''A function that accepts a str or list of image paths and their attribute, formats it 
@@ -577,8 +576,7 @@ class Vecto():
         attribute_batches = self._batch(attribute_list, batch_size)
 
         ingest_ids = []
-
-        for path_batch, attribute_batch in self._custom_progress_bar(zip(path_batches, attribute_batches), total=batch_count, progress_bar=progress_bar):
+        for path_batch, attribute_batch in self._custom_progress_bar(zip(path_batches, attribute_batches), total=batch_count):
             try:
                 ids = self.ingest_image(path_batch, attribute_batch)
                 ingest_ids.append(ids)
@@ -639,13 +637,13 @@ class Vecto():
         attribute_batches = self._batch(attribute_list, batch_size)
         ingest_ids = []
 
-        for path_batch, attribute_batch in (tqdm(zip(text_batches, attribute_batches), total=batch_count) if progress_bar else zip(text_batches, attribute_batches)):
+        for path_batch, attribute_batch in self._custom_progress_bar(zip(text_batches, attribute_batches), total=batch_count):
             try:
                 ids = self.ingest_text(path_batch, attribute_batch)
                 ingest_ids.append(ids)
             except:
                 print("Error in ingesting:\n", path_batch)
-
+        
         return ingest_ids
 
     ##################

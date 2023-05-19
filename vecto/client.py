@@ -1,4 +1,6 @@
-from .exceptions import VectoException
+from .exceptions import ( VectoException, UnauthorizedException, 
+                        ForbiddenException, NotFoundException, ServiceException, 
+                        ConsumedResourceException )
 
 class Client:
     def __init__(self, token:str, vecto_base_url: str, client) -> None:
