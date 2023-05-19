@@ -37,7 +37,7 @@ jobs:
         user_token: ${{ secrets.USER_TOKEN }}
         vecto_base_url:  ${{ secrets.VECTO_BASE_URL }}
         management_token:  ${{ secrets.MANAGEMENT_TOKEN }}
-
+        VECTO_API_KEY:  ${{ secrets.VECTO_API_KEY }}
 
       run: |
         pytest tests/test_sdk.py
