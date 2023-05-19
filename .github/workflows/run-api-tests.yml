@@ -41,6 +41,8 @@ jobs:
 
       run: |
         pytest tests/test_sdk.py
+        pytest tests/test_management.py
+        pytest tests/test_vectorspace.py
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v2

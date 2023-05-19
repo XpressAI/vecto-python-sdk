@@ -653,7 +653,5 @@ class TestExceptions:
         response = user_vecto.ingest_all_text(batch_text, attributes, batch_size=batch_size)
 
         assert response is not None, "No response from ingest_all_text"
-        import pdb; pdb.set_trace()
         assert len(response) == total_text / batch_size, "Unexpected number of responses"
         logger.info("Test passed with total_text=%d and batch_size=%d", total_text, batch_size)
-
