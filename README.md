@@ -4,9 +4,9 @@
 </a>
 </p>
 <p align="center">
-  <a href="https://docs.vecto.ai/docs/">Docs</a> •
+  <a href="https://docs.vecto.ai/">Docs</a> •
   <a href="https://www.xpress.ai/blog/">Blog</a> •
-  <a href="https://discord.com/invite/vgEg2ZtxCw">Discord</a>
+  <a href="https://discord.com/invite/wtYbXvPPfD">Discord</a>
 <br>
 
 # Vecto Python SDK
@@ -93,12 +93,5 @@ for word in analogy:
 For more advanced capabilities including management access, we recommend using the core Vecto class.
 
 
-## Running the Tests
-We've setup an [action](https://github.com/XpressAI/vecto-python-sdk/actions/workflows/run-tests.yml) to automate the API tests. If you'd like to run the tests locally, export a valid `user_token`, `public_token`, and `vector_space_id`, then run:
-
-```
-pytest tests/test_sdk.py
-```
-
 ## Developers Discord
-Have any questions? Feel free to chat with the devs at our [Discord](https://discord.com/invite/vgEg2ZtxCw)!
+Have any questions? Feel free to chat with the devs at our [Discord](https://discord.com/invite/wtYbXvPPfD)!

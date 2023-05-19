@@ -39,13 +39,14 @@ jobs:
         management_token:  ${{ secrets.MANAGEMENT_TOKEN }}
         VECTO_API_KEY:  ${{ secrets.VECTO_API_KEY }}
 
+    - name: Run SDK Tests
       run: |
         pytest tests/test_sdk.py
-        pytest tests/test_management.py
-        pytest tests/test_vectorspace.py
 
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v2
-      with:
-        name: vecto-wheel
-        path: dist
+    - name: Run Management Tests
+      run: |
+        pytest tests/test_management.py
+
+    - name: Run VectorSpace API Tests
+      run: |
+        pytest tests/test_vectorspace.py
