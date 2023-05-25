@@ -176,11 +176,11 @@ class Vecto():
 
         return response
 
-    def lookup_image_from_binary(self, query:IO, top_k:int, ids:list=None, **kwargs) -> List[LookupResult]:
+    def lookup_image_from_binary(self, query:io.IOBase, top_k:int, ids:list=None, **kwargs) -> List[LookupResult]:
         '''A function to perform image search on Vecto.
 
         Args:
-            query (IO): query already in IO form
+            query (io.IOBase): query already in IO form.
             top_k (int): The number of results to return
             ids (list): A list of vector ids to search on aka subset of vectors, defaults to None
             **kwargs: Other keyword arguments for clients other than `requests`
@@ -557,7 +557,7 @@ class Vecto():
 
         return response
 
-    def ingest_all_images(self, path_list:list, attribute_list:list, batch_size:int=64) -> List[IngestResponse]:
+    def ingest_all_images(self, path_list:list, attribute_list:list, batch_size:int=64) -> IngestResponse:
         '''A function that accepts a list of image paths and their attribute, then send them
         to the ingest_image function in batches.
 
@@ -575,15 +575,15 @@ class Vecto():
         path_batches = self._batch(path_list, batch_size)
         attribute_batches = self._batch(attribute_list, batch_size)
 
-        ingest_ids = []
+        ingested_ids = [] 
         for path_batch, attribute_batch in self._custom_progress_bar(zip(path_batches, attribute_batches), total=batch_count):
             try:
-                ids = self.ingest_image(path_batch, attribute_batch)
-                ingest_ids.append(ids)
+                response = self.ingest_image(path_batch, attribute_batch)
+                ingested_ids.extend(response.ids) 
             except:
                 print("Error in ingesting:\n", path_batch)
 
-        return ingest_ids
+        return IngestResponse(ingested_ids)
 
     def ingest_text(self, batch_text_list:Union[str, list], attribute_list:Union[str, list], **kwargs) -> IngestResponse:
         '''A function that accepts a str or list of text and their attribute, formats it 
@@ -617,7 +617,7 @@ class Vecto():
 
         return response
 
-    def ingest_all_text(self, text_list:list, attribute_list:list, batch_size=64) -> List[IngestResponse]:
+    def ingest_all_text(self, text_list:list, attribute_list:list, batch_size=64) -> IngestResponse:
         '''A function that accepts a list of text and their attribute, then send them
         to the ingest_text function in batches.
 
@@ -635,16 +635,16 @@ class Vecto():
 
         text_batches = self._batch(text_list, batch_size)
         attribute_batches = self._batch(attribute_list, batch_size)
-        ingest_ids = []
 
+        ingested_ids = [] 
         for path_batch, attribute_batch in self._custom_progress_bar(zip(text_batches, attribute_batches), total=batch_count):
             try:
-                ids = self.ingest_text(path_batch, attribute_batch)
-                ingest_ids.append(ids)
+                response = self.ingest_text(path_batch, attribute_batch)
+                ingested_ids.extend(response.ids)
             except:
                 print("Error in ingesting:\n", path_batch)
-        
-        return ingest_ids
+
+        return IngestResponse(ingested_ids)
 
     ##################
     # Management API #

@@ -1,5 +1,6 @@
 from vecto import Vecto
 import os
+import io
 from typing import IO, List, Union
 from .schema import LookupResult, IngestResponse, VectoAnalogyStartEnd
 from .exceptions import InvalidModality
@@ -35,6 +36,7 @@ class VectorSpace():
             if self.modality is None:
                 self.modality = self.model.modality
             self.vecto_instance = Vecto(token=token, vector_space_id=self.vector_space_id, *args, **kwargs)
+            print("Vector space " + name + " loaded.")
 
     def exists(self) -> bool:
         '''
@@ -45,7 +47,7 @@ class VectorSpace():
         '''
         return self.vector_space_id is not None
 
-    def create(self, model: str, modality: str = None):
+    def create(self, model: str, token: str = None, modality: str = None):
         '''
         Create a new vector space.
 
@@ -55,6 +57,11 @@ class VectorSpace():
         '''
         if not self.exists():
             created_vector_space = self.vecto_instance.create_vector_space(self.name, model=model)
+            
+            if token is None:
+                token = os.getenv("VECTO_API_KEY", "-1")
+
+            self.vecto_instance = Vecto(token, vector_space_id=created_vector_space.id)
             self.vector_space_id = created_vector_space.id
             self.model = created_vector_space.model
 
@@ -103,7 +110,7 @@ class VectorSpace():
                 return self.vecto_instance.lookup_image_from_url(query, top_k=top_k, ids=ids, **kwargs)
             else:
                 return self.vecto_instance.lookup_image_from_filepath(query, top_k=top_k, ids=ids, **kwargs)
-        elif isinstance(query, IO):
+        if isinstance(query, io.IOBase):
             return self.vecto_instance.lookup_image_from_binary(query, top_k=top_k, ids=ids, **kwargs)
         else:
             raise ValueError("Invalid query type. Must be a string (URL or filepath), os.PathLike, or IO object.")
@@ -145,6 +152,23 @@ class VectorSpace():
             IngestResponse: An IngestResponse object containing the response data
         '''
         return self.vecto_instance.ingest_image(image_path, attribute, **kwargs)
+    
+    def ingest_all_images(self, path_list:list, attribute_list:list, batch_size:int=64) -> IngestResponse:
+            '''A function that accepts a list of image paths and their attribute, then send them
+            to the ingest_image function in batches.
+
+            Args:
+                path_list (list): List of image paths.
+                attribute_list (list): List of image attribute.
+                batch_size (int): batch size of images to be sent at one request. Default 64.
+                **kwargs: Other keyword arguments for clients other than `requests`
+
+            Returns:
+                IngestResponse: named tuple that contains the list of index of ingested objects.
+            '''
+            
+            return self.vecto_instance.ingest_all_images(path_list, attribute_list, batch_size)
+
 
     def ingest_text(self, text: str, attribute: str, **kwargs) -> IngestResponse:
         '''
@@ -158,6 +182,23 @@ class VectorSpace():
             IngestResponse: An IngestResponse object containing the response data
         '''
         return self.vecto_instance.ingest_text(text, attribute, **kwargs)
+
+    def ingest_all_text(self, text_list:list, attribute_list:list, batch_size=64) -> IngestResponse:
+        '''A function that accepts a list of text and their attribute, then send them
+        to the ingest_text function in batches.
+
+        Args:
+            text_list (list): List of text paths.
+            attribute_list (list): List of text attribute.
+            batch_size (int): batch size of text to be sent at one request. Default 64.
+            **kwargs: Other keyword arguments for clients other than `requests`
+
+        Returns:
+            IngestResponse: named tuple that contains the list of index of ingested objects.
+        '''
+        
+        return self.vecto_instance.ingest_all_text(text_list, attribute_list, batch_size)
+
 
     def compute_text_analogy(self, query: IO, analogy_start_end: Union[VectoAnalogyStartEnd, List[VectoAnalogyStartEnd]], top_k: int, **kwargs) -> List[LookupResult]:
         '''
