@@ -11,6 +11,15 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
+    # Defined environment variables at the job level
+    env:
+      vector_space_id : ${{ secrets.VECTOR_SPACE_ID }}
+      user_token: ${{ secrets.USER_TOKEN }}
+      vecto_base_url:  ${{ secrets.VECTO_BASE_URL }}
+      management_token:  ${{ secrets.MANAGEMENT_TOKEN }}
+      VECTO_API_KEY:  ${{ secrets.VECTO_API_KEY }}
+
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python
@@ -30,14 +39,6 @@ jobs:
     - name: Install API test dependencies
       run: |
         python -m pip install -r tests/requirements.txt
-
-    - name: Run API Tests
-      env:
-        vector_space_id : ${{ secrets.VECTOR_SPACE_ID }}
-        user_token: ${{ secrets.USER_TOKEN }}
-        vecto_base_url:  ${{ secrets.VECTO_BASE_URL }}
-        management_token:  ${{ secrets.MANAGEMENT_TOKEN }}
-        VECTO_API_KEY:  ${{ secrets.VECTO_API_KEY }}
 
     - name: Run SDK Tests
       run: |
