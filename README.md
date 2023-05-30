@@ -6,18 +6,21 @@
 <p align="center">
   <a href="https://docs.vecto.ai/">Docs</a> •
   <a href="https://www.xpress.ai/blog/">Blog</a> •
-  <a href="https://discord.com/invite/wtYbXvPPfD">Discord</a>
+  <a href="https://discord.com/invite/wtYbXvPPfD">Discord</a> •
+    <a href="https://github.com/XpressAI/vecto-tutorials">Tutorials</a>
+
 <br>
 
 # Vecto Python SDK
 Official Python SDK for [Vecto](https://www.vecto.ai/), the database software that puts intelligent search and powerful models at your fingertips, allowing you to leverage the full potential of AI in mere minutes. 
 
+
 ## Installation
-
+You can install the package from our latest GitHub [release](https://github.com/XpressAI/vecto-python-sdk/releases). 
 ```
-pip install vecto-sdk
+pip install git+https://github.com/XpressAI/vecto-python-sdk@latest-release-tag
 ```
-
+Alternatively you can also download the latest wheel file from the releases page.
 
 For the token, sign up for your access [here](https://www.vecto.ai/contactus).
 
@@ -92,6 +95,8 @@ for word in analogy:
 
 For more advanced capabilities including management access, we recommend using the core Vecto class.
 
+## Tutorial
+We have a new Vecto tutorial! Checkout the [Vecto tutorials repository](https://github.com/XpressAI/vecto-tutorials).
 
 ## Developers Discord
 Have any questions? Feel free to chat with the devs at our [Discord](https://discord.com/invite/wtYbXvPPfD)!

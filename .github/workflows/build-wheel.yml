@@ -32,8 +32,14 @@ jobs:
         pip install setuptools wheel
         python setup.py bdist_wheel --universal
 
-    - name: Upload Artifacts
+    - name: Upload Wheel Artifact
       uses: actions/upload-artifact@v2
       with:
         name: vecto-wheel-${{ env.branch_name }}-${{ env.git_hash }}
-        path: dist
+        path: dist/*.whl
+
+    - name: Upload Dist Directory Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: dist-${{ env.branch_name }}-${{ env.git_hash }}
+        path: dist/
