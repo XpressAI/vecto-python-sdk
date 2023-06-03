@@ -20,10 +20,7 @@ class VectorSpace():
     def __init__(self, name: str, token: str = None, modality: str = None, *args, **kwargs):
         api_key = token
         if api_key is None:
-            if vecto.api_key is None:
-                api_key = os.getenv("VECTO_API_KEY", None)
-            else:
-                api_key = vecto.api_key
+            api_key = vecto.api_key
 
         self.vecto_instance = Vecto(token=api_key, *args, **kwargs)
         self.name = name

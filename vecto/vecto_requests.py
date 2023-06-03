@@ -52,10 +52,7 @@ class Vecto():
     
         api_key = token
         if api_key is None:
-            if vecto.api_key is None:
-                api_key = os.getenv("VECTO_API_KEY", None)
-            else:
-                api_key = vecto.api_key
+            api_key = vecto.api_key
                 
         self.vector_space_id = vector_space_id
         self._client = Client(api_key, vecto_base_url, client)
