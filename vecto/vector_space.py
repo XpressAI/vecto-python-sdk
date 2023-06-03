@@ -1,3 +1,4 @@
+import vecto
 from vecto import Vecto
 import os
 import io
@@ -17,10 +18,11 @@ class VectorSpace():
         modality (str, optional): The modality of the vector space (TEXT or IMAGE)
     '''
     def __init__(self, name: str, token: str = None, modality: str = None, *args, **kwargs):
-        if token is None:
-            token = os.getenv("VECTO_API_KEY", "-1")
+        api_key = token
+        if api_key is None:
+            api_key = vecto.api_key
 
-        self.vecto_instance = Vecto(token=token, *args, **kwargs)
+        self.vecto_instance = Vecto(token=api_key, *args, **kwargs)
         self.name = name
         self.vector_space_id = None
         self.model = None
