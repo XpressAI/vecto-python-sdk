@@ -1,3 +1,4 @@
+import vecto
 from vecto import Vecto
 import os
 import io
@@ -20,7 +21,7 @@ class VectorSpace():
         api_key = token
         if api_key is None:
             if vecto.api_key is None:
-                api_key = os.getenv("VECTO_API_KEY", "-1")
+                api_key = os.getenv("VECTO_API_KEY", None)
             else:
                 api_key = vecto.api_key
 

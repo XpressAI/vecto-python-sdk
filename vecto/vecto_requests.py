@@ -29,6 +29,7 @@ from .schema import (VectoIngestData, VectoEmbeddingData, VectoAttribute, VectoA
                     VectoToken, VectoNewTokenResponse, MODEL_MAP, VectoAnalogy)
 
 from .client import Client
+import vecto
 
 class Vecto():
     '''
