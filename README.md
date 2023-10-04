@@ -18,7 +18,7 @@ Official Python SDK for [Vecto](https://www.vecto.ai/), the database software th
 ## Installation
 You can install the package from our latest GitHub [release](https://github.com/XpressAI/vecto-python-sdk/releases). 
 ```
-pip install git+https://github.com/XpressAI/vecto-python-sdk@latest-release-tag
+pip install vecto-sdk
 ```
 Alternatively you can also download the latest wheel file from the releases page.
 
