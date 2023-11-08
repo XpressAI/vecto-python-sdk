@@ -427,8 +427,9 @@ class TestUpdating:
     # Test updating attribute of a vector embedding on Vecto
     def test_update_single_vector_attribute(self):
 
-        old_results = user_vecto.lookup(io.StringIO('blue'), modality='TEXT', top_k=100)
-
+        response = user_vecto.lookup(io.StringIO('blue'), modality='TEXT', top_k=100)
+        old_results = {result.id: result for result in response}
+        
         global ingest_text_ids
         vector_id = ingest_text_ids[0]
         new_attribute = 'new_attribute'
@@ -439,7 +440,6 @@ class TestUpdating:
         }]
 
         user_vecto.update_vector_attribute(updated_attribute)
-        ref_db = user_db_twin.get_database()
         
         # Just a dummy lookup to return the specified ID - check specific entry
         f = io.StringIO('blue')
@@ -452,22 +452,24 @@ class TestUpdating:
         # Just a dummy lookup to return all the data in the vector space - check other entries
         f = io.StringIO('blue')
         lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
-        lookup_attribute = []
-
-        #need to iterate though this object
-        for result in lookup_response:
-            if result.id != vector_id:
-                lookup_attribute.append([result.id, result.attributes])
-
+        lookup_attribute = {result.id: result for result in lookup_response}
+        
         logger.info("Checking if other attribute is not updated...")
-        for result in lookup_attribute:
-            id = result[0]
-            attribute = result[1]
-            assert attribute == ref_db.iloc[id]['attribute']
+
+        for id, result in old_results.items():
+            if id != vector_id:  # Skip the updated id
+                assert id in lookup_attribute, f"ID {id} is missing in the new results."
+                assert result.attributes == lookup_attribute[id].attributes, \
+                    f"Attributes for ID {id} have changed."
+
         logger.info("All other attribute unchanged.")
 
     # Test updating attribute of multiple vector embeddings on Vecto
     def test_update_vector_attribute(self):
+
+        response = user_vecto.lookup(io.StringIO('blue'), modality='TEXT', top_k=100)
+        old_results = {result.id: result for result in response}
+    
         batch_len = 3
 
         global ingest_text_ids
@@ -483,7 +485,6 @@ class TestUpdating:
         })
 
         user_vecto.update_vector_attribute(updated_attribute)
-        ref_db = user_db_twin.get_database()
         
         # Just a dummy lookup to return all the data in the vector space - check other entries
         f = io.StringIO('blue')
@@ -500,17 +501,15 @@ class TestUpdating:
         # Just a dummy lookup to return all the data in the vector space - check other entries
         f = io.StringIO('blue')
         lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
-        lookup_attribute = []
-        for result in lookup_response:
-            if result.id != vector_ids:
-                lookup_attribute.append([result.id, result.attributes])
+        lookup_attribute = {result.id: result for result in lookup_response}
+
 
         logger.info("Checking if other attribute is not updated...")
-        for result in lookup_attribute:
-            id = result[0]
-            if id not in vector_ids:
-                attribute = result[1]
-                assert attribute == ref_db.iloc[id].attribute
+        for id, result in old_results.items():
+            if id not in vector_ids:  # Correctly skip the updated ids
+                assert id in lookup_attribute, f"ID {id} is missing in the new results."
+                assert result.attributes == lookup_attribute[id].attributes, \
+                    f"Attributes for ID {id} have changed."
         logger.info("All other attribute unchanged.")
     
 @pytest.mark.analogy
@@ -575,23 +574,19 @@ class TestDelete:
 
     # Test deleting multiple vector embeddings from Vecto
     def test_delete_batch_vector_embedding(self):
-        batch_len = 5
-        vector_ids = []
-        deleted_ids = user_db_twin.get_deleted_ids()
-        while len(vector_ids) < batch_len:
-            rand_id = random.randrange(0, 10)
-            if rand_id not in deleted_ids and rand_id not in vector_ids:
-                vector_ids.append(rand_id)
-        user_vecto.delete_vector_embeddings(vector_ids)
-        ref_db = user_db_twin.get_database()
-        user_db_twin.update_deleted_ids(vector_ids)
 
         f = io.StringIO('blue')
+        original_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
+
+        global ingest_text_ids
+        deleted_vector_ids = ingest_text_ids
+
+        user_vecto.delete_vector_embeddings(deleted_vector_ids)
+
         lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
-        results = lookup_response
        
-        logger.info("Checking if the length of result is 6: " + str(len(results) == (len(ref_db) - len(deleted_ids))))
-        assert len(results) is (len(ref_db) - len(deleted_ids))
+        logger.info("Checking if the length of result: " + str(len(lookup_response) == (len(original_response) - len(deleted_vector_ids))))
+        assert len(lookup_response) is (len(original_response) - len(deleted_vector_ids))
 
 
 @pytest.mark.exception
