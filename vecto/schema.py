@@ -1,5 +1,6 @@
 import sys
 from typing import IO, NamedTuple, List, Optional
+from datetime import date
 
 if sys.version_info >= (3, 8):
     from typing import TypedDict
@@ -98,3 +99,24 @@ class VectoAnalogy(NamedTuple):
     createdAt: str
     updatedAt: str
     vectorSpaceId: int
+
+class DailyUsageMetric(NamedTuple):
+    '''A named tuple that contains daily usage metrics.'''
+    date: date
+    count: int
+    cumulativeCount: int
+
+class UsageMetric(NamedTuple):
+    '''A named tuple that contains usage metrics, including an array of daily metrics.'''
+    dailyMetrics: List[DailyUsageMetric]
+
+class VectoUsageMetrics(NamedTuple):
+    '''A named tuple that contains Vecto usage metrics for lookups and indexing.'''
+    lookups: UsageMetric
+    indexing: UsageMetric
+
+class MonthlyUsageResponse(NamedTuple):
+    '''A named tuple that contains the usage metrics for a specified vector space and month.'''
+    year: int
+    month: int
+    usage: VectoUsageMetrics

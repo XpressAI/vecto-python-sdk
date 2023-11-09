@@ -161,3 +161,16 @@ def test_delete_vector_space():
     id_exists = any(vecto_vector_space.id == test_vector_space.id for vecto_vector_space in updated_vs_list)
     logger.info("Check if the vector space is deleted.")
     assert not id_exists
+
+
+@pytest.mark.metrics
+def test_usage(): 
+    from datetime import datetime
+    today = datetime.now()
+    usage_response = user_vecto.usage(today.year, today.month)
+    logger.info("Checking that usage returns a valid response.")
+    assert usage_response is not None
+    logger.info("Checking that usage for today is not empty.")
+    assert usage_response.usage.lookups.dailyMetrics[today.day-1].count > 0
+    assert usage_response.usage.indexing.dailyMetrics[today.day-1].count > 0
+

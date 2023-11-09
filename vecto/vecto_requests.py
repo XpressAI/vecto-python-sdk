@@ -20,13 +20,15 @@ import math
 import io
 import os
 import pathlib
+from datetime import date
 
-from typing import IO, List, Union
+from typing import IO, List, Union, Any, Dict
 from .exceptions import (UnpairedAnalogy, InvalidModality, ModelNotFoundException )
 
 from .schema import (VectoIngestData, VectoEmbeddingData, VectoAttribute, VectoAnalogyStartEnd,
                     IngestResponse, LookupResult, VectoModel, VectoVectorSpace, VectoUser,
-                    VectoToken, VectoNewTokenResponse, MODEL_MAP, VectoAnalogy)
+                    VectoToken, VectoNewTokenResponse, MODEL_MAP, VectoAnalogy, 
+                    DailyUsageMetric, UsageMetric, VectoUsageMetrics, MonthlyUsageResponse)
 
 from .client import Client
 import vecto
@@ -916,3 +918,58 @@ class Vecto():
         '''
         url = f"/api/v0/account/space/{vector_space_id}/analogy"
         self._client.delete(url, **kwargs)
+
+    ###############
+    # Metrics API #
+    ###############
+
+    def _parse_daily_usage_metric(self, d: Dict[str, Any]) -> DailyUsageMetric:
+        return DailyUsageMetric(
+            date=date.fromisoformat(d['date']),
+            count=d['count'],
+            cumulativeCount=d['cumulativeCount']
+        )
+
+    def _parse_usage_metric(self, u: Dict[str, Any]) -> UsageMetric:
+        return UsageMetric(
+            dailyMetrics=[self._parse_daily_usage_metric(d) for d in u['dailyMetrics']]
+        )
+
+    def _parse_vecto_usage_metrics(self, u: Dict[str, Any]) -> VectoUsageMetrics:
+        return VectoUsageMetrics(
+            lookups=self._parse_usage_metric(u['lookups']),
+            indexing=self._parse_usage_metric(u['indexing'])
+        )
+
+    def usage(self, year: int, month: int, vector_space_id: int = None, **kwargs) -> MonthlyUsageResponse:
+        '''Return the usage metrics for the selected month
+
+        Args:
+            year (int): The year for the usage data.
+            month (int): The month for the usage data.
+            vector_space_id (int, optional): The ID of the vector space. Defaults to None.
+            **kwargs: Other keyword arguments for clients other than `requests`
+        Returns:
+            MonthlyUsageResponse: Named tuple that contains the usage metrics for a specified vector space and month.
+        '''
+        
+        # Use provided vector_space_id or fallback to self.vector_space_id
+        vector_space_id = vector_space_id or getattr(self, 'vector_space_id', None)
+        
+        # Raise an error if vector_space_id is still not available
+        if vector_space_id is None:
+            raise ValueError("A vector space ID must be provided either as a parameter or set in the instance.")
+
+        url = f"/api/v0/space/{vector_space_id}/usage/{year}/{month}"
+        response = self._client.get(url, **kwargs)
+        response_data = response.json()
+        
+        usage_metrics = self._parse_vecto_usage_metrics(response_data['usage'])
+
+        monthly_usage_response = MonthlyUsageResponse(
+            year=response_data['year'],
+            month=response_data['month'],
+            usage=usage_metrics
+        )
+
+        return monthly_usage_response

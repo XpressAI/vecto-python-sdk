@@ -45,6 +45,10 @@ vecto_base_url = os.environ['vecto_base_url']
 user_vecto = Vecto(token, vector_space_id, vecto_base_url=vecto_base_url)
 user_db_twin = DatabaseTwin()
 
+# IDs for update apis
+ingest_text_ids = None
+ingest_image_ids = None
+
 # Clear off vector space before start
 @pytest.mark.clear
 def test_clear_vector_space_entries():
@@ -126,6 +130,10 @@ class TestIngesting:
         # for f in files:
         #     f.close()
         results = response.ids
+
+        global ingest_image_ids
+        ingest_image_ids = response.ids
+
         user_db_twin.update_database(results, data['data'])
         ref_db = user_db_twin.get_database()
 
@@ -166,6 +174,10 @@ class TestIngesting:
         attribute = TestDataset.get_text_attribute(batch.index.tolist()[:5], batch.tolist()[:5])
         response = user_vecto.ingest_text(batch.tolist()[:5], attribute)
         results = response.ids
+
+        global ingest_text_ids
+        ingest_text_ids = response.ids
+
         user_db_twin.update_database(results, attribute)
         ref_db = user_db_twin.get_database()
         
@@ -344,30 +356,30 @@ class TestUpdating:
     
     # Test updating a vector embedding using text on Vecto
     def test_update_single_text_vector_embedding(self):
-        text = TestDataset.get_random_text(TestDataset.get_color_dataset)
-        vector_ids = random.sample(range(len(text)), len(text))
+        text = TestDataset.get_random_text(TestDataset.get_color_dataset)[0]
+        global ingest_text_ids
+        vector_id = ingest_text_ids[0]
         
         updated_vector = []
-        
-        for file, vector_id in zip(text, vector_ids):
-            updated_vector.append({
+        updated_vector.append({
             'id': vector_id,
-            'data': io.StringIO(file),
+            'data': io.StringIO(text),
         })
 
         user_vecto.update_vector_embeddings(updated_vector, modality='TEXT')
 
     # Test updating a vector embedding using image on Vecto
     def test_update_single_image_vector_embedding(self):
-        image = TestDataset.get_random_image()
-        vector_ids = random.sample(range(len(image)), len(image))
+        image = TestDataset.get_random_image()[0]
+
+        global ingest_image_ids
+        vector_id = ingest_image_ids[0]
 
         updated_vector = []
         
-        for file, vector_id in zip(image, vector_ids):
-            updated_vector.append({
+        updated_vector.append({
             'id': vector_id,
-            'data': open(file, 'rb')
+            'data': open(image, 'rb')
         })
 
         user_vecto.update_vector_embeddings(updated_vector, modality='IMAGE')
@@ -378,7 +390,9 @@ class TestUpdating:
     # Test updating multiple vector embeddings using text on Vecto
     def test_update_batch_text_vector_embedding(self):
         text = TestDataset.get_color_dataset()[:5]
-        vector_ids = random.sample(range(len(text)), len(text))
+        
+        global ingest_text_ids
+        vector_ids = ingest_text_ids[:5]
 
         updated_vector = []
         
@@ -394,8 +408,9 @@ class TestUpdating:
     # Test updating multiple vector embeddings using image on Vecto
     def test_update_batch_image_vector_embedding(self):
         image = TestDataset.get_image_dataset()[:5]
-        vector_ids = random.sample(range(len(image)), len(image))
 
+        global ingest_image_ids
+        vector_ids = ingest_image_ids[:5]
         updated_vector = []
         
         for file, vector_id in zip(image, vector_ids):
@@ -411,7 +426,12 @@ class TestUpdating:
 
     # Test updating attribute of a vector embedding on Vecto
     def test_update_single_vector_attribute(self):
-        vector_id = random.randrange(0, 10)
+
+        response = user_vecto.lookup(io.StringIO('blue'), modality='TEXT', top_k=100)
+        old_results = {result.id: result for result in response}
+        
+        global ingest_text_ids
+        vector_id = ingest_text_ids[0]
         new_attribute = 'new_attribute'
 
         updated_attribute = [{
@@ -420,8 +440,7 @@ class TestUpdating:
         }]
 
         user_vecto.update_vector_attribute(updated_attribute)
-        ref_db = user_db_twin.get_database()
-
+        
         # Just a dummy lookup to return the specified ID - check specific entry
         f = io.StringIO('blue')
         lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=1, ids=vector_id)
@@ -433,23 +452,28 @@ class TestUpdating:
         # Just a dummy lookup to return all the data in the vector space - check other entries
         f = io.StringIO('blue')
         lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
-        lookup_attribute = []
-
-        #need to iterate though this object
-        for result in lookup_response:
-            if result.id != vector_id:
-                lookup_attribute.append([result.id, result.attributes])
+        lookup_attribute = {result.id: result for result in lookup_response}
+        
         logger.info("Checking if other attribute is not updated...")
-        for result in lookup_attribute:
-            id = result[0]
-            attribute = result[1]
-            assert attribute == ref_db.iloc[id]['attribute']
+
+        for id, result in old_results.items():
+            if id != vector_id:  # Skip the updated id
+                assert id in lookup_attribute, f"ID {id} is missing in the new results."
+                assert result.attributes == lookup_attribute[id].attributes, \
+                    f"Attributes for ID {id} have changed."
+
         logger.info("All other attribute unchanged.")
 
     # Test updating attribute of multiple vector embeddings on Vecto
     def test_update_vector_attribute(self):
+
+        response = user_vecto.lookup(io.StringIO('blue'), modality='TEXT', top_k=100)
+        old_results = {result.id: result for result in response}
+    
         batch_len = 3
-        vector_ids = random.sample(range(10), batch_len)
+
+        global ingest_text_ids
+        vector_ids = ingest_text_ids[:3]
         new_attribute = ['new_attribute_{}'.format(i) for i in range(batch_len)]
 
         updated_attribute = []
@@ -461,7 +485,6 @@ class TestUpdating:
         })
 
         user_vecto.update_vector_attribute(updated_attribute)
-        ref_db = user_db_twin.get_database()
         
         # Just a dummy lookup to return all the data in the vector space - check other entries
         f = io.StringIO('blue')
@@ -478,17 +501,15 @@ class TestUpdating:
         # Just a dummy lookup to return all the data in the vector space - check other entries
         f = io.StringIO('blue')
         lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
-        lookup_attribute = []
-        for result in lookup_response:
-            if result.id != vector_ids:
-                lookup_attribute.append([result.id, result.attributes])
+        lookup_attribute = {result.id: result for result in lookup_response}
+
 
         logger.info("Checking if other attribute is not updated...")
-        for result in lookup_attribute:
-            id = result[0]
-            if id not in vector_ids:
-                attribute = result[1]
-                assert attribute == ref_db.iloc[id].attribute
+        for id, result in old_results.items():
+            if id not in vector_ids:  # Correctly skip the updated ids
+                assert id in lookup_attribute, f"ID {id} is missing in the new results."
+                assert result.attributes == lookup_attribute[id].attributes, \
+                    f"Attributes for ID {id} have changed."
         logger.info("All other attribute unchanged.")
     
 @pytest.mark.analogy
@@ -553,23 +574,19 @@ class TestDelete:
 
     # Test deleting multiple vector embeddings from Vecto
     def test_delete_batch_vector_embedding(self):
-        batch_len = 5
-        vector_ids = []
-        deleted_ids = user_db_twin.get_deleted_ids()
-        while len(vector_ids) < batch_len:
-            rand_id = random.randrange(0, 10)
-            if rand_id not in deleted_ids and rand_id not in vector_ids:
-                vector_ids.append(rand_id)
-        user_vecto.delete_vector_embeddings(vector_ids)
-        ref_db = user_db_twin.get_database()
-        user_db_twin.update_deleted_ids(vector_ids)
 
         f = io.StringIO('blue')
+        original_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
+
+        global ingest_text_ids
+        deleted_vector_ids = ingest_text_ids
+
+        user_vecto.delete_vector_embeddings(deleted_vector_ids)
+
         lookup_response = user_vecto.lookup(f, modality='TEXT', top_k=100)
-        results = lookup_response
        
-        logger.info("Checking if the length of result is 6: " + str(len(results) == (len(ref_db) - len(deleted_ids))))
-        assert len(results) is (len(ref_db) - len(deleted_ids))
+        logger.info("Checking if the length of result: " + str(len(lookup_response) == (len(original_response) - len(deleted_vector_ids))))
+        assert len(lookup_response) is (len(original_response) - len(deleted_vector_ids))
 
 
 @pytest.mark.exception
