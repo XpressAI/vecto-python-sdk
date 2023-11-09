@@ -947,12 +947,12 @@ class Vecto():
         Args:
             year (int): The year for the usage data.
             month (int): The month for the usage data.
-            vector_space_id (int, optional): The ID of the vector space. Defaults to None.
+            vector_space_id (int, optional): The ID of the vector space. Falls back to self vector id if not provided.
             **kwargs: Other keyword arguments for clients other than `requests`
         Returns:
             MonthlyUsageResponse: Named tuple that contains the usage metrics for a specified vector space and month.
         '''
-        
+
         # Use provided vector_space_id or fallback to self.vector_space_id
         vector_space_id = vector_space_id or getattr(self, 'vector_space_id', None)
         
