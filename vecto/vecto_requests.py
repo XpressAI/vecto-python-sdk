@@ -941,15 +941,25 @@ class Vecto():
             indexing=self._parse_usage_metric(u['indexing'])
         )
 
-    def usage(self, vector_space_id: int, year: int, month: int, **kwargs) -> MonthlyUsageResponse:
+    def usage(self, year: int, month: int, vector_space_id: int = None, **kwargs) -> MonthlyUsageResponse:
         '''Return the usage metrics for the selected month
 
         Args:
-            vector_space_id (int): The ID of the vector space.
             year (int): The year for the usage data.
             month (int): The month for the usage data.
+            vector_space_id (int, optional): The ID of the vector space. Defaults to None.
             **kwargs: Other keyword arguments for clients other than `requests`
+        Returns:
+            MonthlyUsageResponse: Named tuple that contains the usage metrics for a specified vector space and month.
         '''
+        
+        # Use provided vector_space_id or fallback to self.vector_space_id
+        vector_space_id = vector_space_id or getattr(self, 'vector_space_id', None)
+        
+        # Raise an error if vector_space_id is still not available
+        if vector_space_id is None:
+            raise ValueError("A vector space ID must be provided either as a parameter or set in the instance.")
+
         url = f"/api/v0/space/{vector_space_id}/usage/{year}/{month}"
         response = self._client.get(url, **kwargs)
         response_data = response.json()

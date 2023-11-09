@@ -164,16 +164,13 @@ def test_delete_vector_space():
 
 
 @pytest.mark.metrics
-class TestMetrics:
-
-    # Test getting monthly usage from Vecto
-    def test_usage(self): 
-        from datetime import datetime
-        today = datetime.now()
-        usage_response = user_vecto.usage(user_vecto.vector_space_id, today.year, today.month)
-        logger.info("Checking that usage returns a valid response.")
-        assert usage_response is not None
-        logger.info("Checking that usage for today is not empty.")
-        assert usage_response.usage.lookups.dailyMetrics[today.day-1].count > 0
-        assert usage_response.usage.indexing.dailyMetrics[today.day-1].count > 0
+def test_usage(): 
+    from datetime import datetime
+    today = datetime.now()
+    usage_response = user_vecto.usage(today.year, today.month)
+    logger.info("Checking that usage returns a valid response.")
+    assert usage_response is not None
+    logger.info("Checking that usage for today is not empty.")
+    assert usage_response.usage.lookups.dailyMetrics[today.day-1].count > 0
+    assert usage_response.usage.indexing.dailyMetrics[today.day-1].count > 0
 
