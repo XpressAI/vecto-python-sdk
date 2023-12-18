@@ -14,13 +14,14 @@ class VectorSpace():
 
     Args:
         name (str): The name of the vector space. If multiple vector spaces have the same name, will return the first instance.
-        token (str, optional): The API token
-        modality (str, optional): The modality of the vector space (TEXT or IMAGE)
+        token (str, optional): The API token. If not set, it will check if `VECTO_API_KEY` exists in the env.
+        modality (str, optional): The modality of the vector space (TEXT or IMAGE).
     '''
     def __init__(self, name: str, token: str = None, modality: str = None, *args, **kwargs):
         api_key = token
+
         if api_key is None:
-            api_key = vecto.api_key
+            api_key = os.getenv("VECTO_API_KEY")
 
         self.vecto_instance = Vecto(token=api_key, *args, **kwargs)
         self.name = name
