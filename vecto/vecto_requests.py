@@ -28,7 +28,8 @@ from .exceptions import (UnpairedAnalogy, InvalidModality, ModelNotFoundExceptio
 from .schema import (VectoIngestData, VectoEmbeddingData, VectoAttribute, VectoAnalogyStartEnd,
                     IngestResponse, LookupResult, VectoModel, VectoVectorSpace, VectoUser,
                     VectoToken, VectoNewTokenResponse, MODEL_MAP, VectoAnalogy, 
-                    DailyUsageMetric, UsageMetric, VectoUsageMetrics, MonthlyUsageResponse)
+                    DailyUsageMetric, UsageMetric, VectoUsageMetrics, MonthlyUsageResponse, 
+                    DataEntry, DataPage)
 
 from .client import Client
 import vecto
@@ -917,6 +918,44 @@ class Vecto():
             **kwargs: Other keyword arguments for clients other than `requests`
         '''
         url = f"/api/v0/account/space/{vector_space_id}/analogy"
+        self._client.delete(url, **kwargs)
+
+    def list_vector_space_data(self, vector_space_id: int, limit: int = None, offset: int = None, **kwargs):
+        '''
+        List the attributes of all entries in the given vector space.
+
+        Args:
+            vector_space_id (int): The ID of the vector space.
+            limit (int, optional): The maximum number of entries to return. If not specified, it will be set to 0.
+            offset (int, optional): The offset from the start of the list to begin returning entries.
+            **kwargs: Other keyword arguments for clients other than `requests`
+
+        Returns:
+            DataPage: A DataPage instance containing the list of entries and their attributes.
+        '''
+
+        url = f"/api/v0/space/{vector_space_id}/data"
+        params = {'limit': limit, 'offset': offset}
+        response = self._client.get(url, params=params, **kwargs)
+        response_json = response.json()
+
+        # Create DataEntry instances for each element in the response
+        data_entries = [DataEntry(**entry) for entry in response_json["elements"]]
+
+        # Create and return the DataPage instance
+        return DataPage(count=response_json["count"], elements=data_entries)
+
+    def delete_vector_space_entry(self, vector_space_id: int, entry_id: int, **kwargs):
+        '''
+        Delete an entry in a vector space.
+
+        Args:
+            vector_space_id (int): The ID of the vector space.
+            entry_id (int): The ID of the entry to be deleted.
+            **kwargs: Other keyword arguments for clients other than `requests`
+        '''
+
+        url = f"/api/v0/space/{vector_space_id}/data/{entry_id}"
         self._client.delete(url, **kwargs)
 
     ###############

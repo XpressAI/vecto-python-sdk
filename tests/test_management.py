@@ -22,7 +22,7 @@ import pathlib
 
 from vecto.schema import (VectoIngestData, VectoEmbeddingData, VectoAttribute, VectoAnalogyStartEnd,
                     IngestResponse, LookupResult, VectoModel, VectoVectorSpace, VectoUser,
-                    VectoToken, VectoNewTokenResponse)
+                    VectoToken, VectoNewTokenResponse, DataPage, DataEntry)
 
 '''
 Please ensure that you have token, vecto_base_url and vector_space_id
@@ -51,6 +51,7 @@ vector_spaces = ""
 test_vector_space = ""
 test_vs_name = "management_sdk_test"
 test_vs_token = ""
+test_vs_data = ""
 
 # Currently test disabled as a bug prevents certain VS to be deleted.
 # @pytest.mark.management
@@ -152,6 +153,23 @@ def test_delete_token():
     token_list = user_vecto.list_tokens()
     assert not any(token.id == test_vs_token.id for token in token_list)
 
+@pytest.mark.management
+def test_listing():
+    global test_vs_data
+    logger.info("Check if vector space data can be listed and the return types are correct.")
+    test_vs_data = user_vecto.list_vector_space_data(vector_space_id, 10, 0)
+    assert isinstance(test_vs_data, DataPage)
+    assert isinstance(test_vs_data.elements[0], DataEntry)
+
+@pytest.mark.management
+def test_delete_data():
+    global test_vs_data
+    logger.info("Check if vector space data can be deleted.")
+    dataEntry = test_vs_data.elements[0]
+    user_vecto.delete_vector_space_entry(vector_space_id, dataEntry.id)
+    updated_vs_data = user_vecto.list_vector_space_data(vector_space_id, 10, 0)
+    updatedDataEntry = updated_vs_data.elements[0]
+    assert dataEntry != updatedDataEntry
 
 @pytest.mark.management
 def test_delete_vector_space():

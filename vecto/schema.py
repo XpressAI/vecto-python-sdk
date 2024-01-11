@@ -120,3 +120,13 @@ class MonthlyUsageResponse(NamedTuple):
     year: int
     month: int
     usage: VectoUsageMetrics
+
+class DataEntry(NamedTuple):
+    '''A named tuple that represents an individual data entry with an ID and attributes.'''
+    id: int
+    attributes: dict
+
+class DataPage(NamedTuple):
+    '''A named tuple of data entries, contains the total count and a list of 'DataEntry' instances.'''
+    count: int
+    elements: List[DataEntry]
