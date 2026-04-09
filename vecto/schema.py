@@ -87,7 +87,10 @@ class VectoNewTokenResponse(NamedTuple):
 MODEL_MAP = {
     1: "CLIP",
     2: "SBERT",
-    3: "OPENAI"
+    3: "OPENAI",
+    4: "OPENAI_V3_SMALL",
+    5: "OPENAI_V3_LARGE",
+    6: "QWEN2"
 }
 
 

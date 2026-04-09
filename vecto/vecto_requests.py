@@ -659,18 +659,26 @@ class Vecto():
     ##################
 
     def _get_model_type(self, input_value):
+        # Try dynamic lookup from API first, fall back to hardcoded MODEL_MAP
+        try:
+            models = self.list_models()
+            dynamic_map = {m.id: m.name.upper() for m in models}
+        except Exception:
+            dynamic_map = None
+
+        model_map = dynamic_map if dynamic_map else MODEL_MAP
+
         if isinstance(input_value, int):
-            if input_value in MODEL_MAP:
+            if input_value in model_map:
                 return input_value
             else:
                 raise ModelNotFoundException(f"Model not found for integer value: {input_value}")
         elif isinstance(input_value, str):
             input_value = input_value.upper()
-            for model_int, model_str in MODEL_MAP.items():
+            for model_int, model_str in model_map.items():
                 if model_str == input_value:
                     return model_int
-            else:
-                raise ModelNotFoundException(f"Model not found for string value: {input_value}")
+            raise ModelNotFoundException(f"Model not found for string value: {input_value}")
         else:
             raise TypeError(f"Invalid input type: {type(input_value)}.")
 
