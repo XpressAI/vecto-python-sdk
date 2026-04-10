@@ -5,7 +5,6 @@ with open('README.md', encoding='utf-8') as f:
 
 setup(
     name='vecto-sdk',
-    version='0.2.3',
     author='Xpress AI',
     author_email='eduardo@xpress.ai',
     description='Official Python SDK for Vecto',
